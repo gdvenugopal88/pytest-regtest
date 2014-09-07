@@ -1,12 +1,14 @@
 from setuptools import setup
 
-VERSION = (0, 0, 3)
+VERSION = (0, 0, 4)
 AUTHOR = "Uwe Schmitt"
 AUTHOR_EMAIL = "uwe.schmitt@id.ethz.ch"
 
 DESCRIPTION = "py.test plugin for regression tests"
 
 LICENSE = "http://opensource.org/licenses/GPL-3.0"
+
+URL="https://sissource.ethz.ch/uweschmitt/pytest-regtest/tree/master"
 
 LONG_DESCRIPTION = """
 
@@ -38,6 +40,7 @@ setup(
     py_modules = ['pytest_regtest'],
     author=AUTHOR,
     author_email=AUTHOR_EMAIL,
+    url=URL,
     license=LICENSE,
     description=DESCRIPTION,
     long_description=LONG_DESCRIPTION,
