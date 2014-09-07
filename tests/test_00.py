@@ -1,5 +1,2 @@
-import pdb
-import pytest
-
 def test0(regtest):
-    print >> regtest, range(10)
+    print >> regtest, "this is the expected output"
