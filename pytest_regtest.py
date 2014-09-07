@@ -26,7 +26,7 @@ def regtest(request):
     fp = cStringIO.StringIO()
     yield fp
 
-    reset = request.config.getvalue("--reset-regtest")
+    reset = request.config.getoption("--reset-regtest")
     path = request.fspath.strpath
     func_name = request.function.__name__
     dirname = os.path.dirname(path)
