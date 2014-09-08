@@ -18,9 +18,8 @@ pytest-regtest
 
 This *pytest*-plugin allows capturing of output of test functions which can be compared
 to the captured output from former runs.
-This is a common technique to start
-http://en.wikipedia.org/wiki/Test-driven_development if you have to refactor legacy code which
-ships without tests.
+This is a common technique to start <http://en.wikipedia.org/wiki/Test-driven_development> if you
+have to refactor legacy code which ships without tests.
 
 To install and activate this plugin you have to run
 
