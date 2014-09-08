@@ -1,4 +1,3 @@
-import pdb
 """Regresstion test plugin for pytest.
 
 This plugin enables recording of ouput of testfunctions which can be compared on subsequent
@@ -6,8 +5,9 @@ runs.
 """
 
 import os
-import sys
 import cStringIO
+import difflib
+
 import pytest
 
 
@@ -19,12 +19,21 @@ def pytest_addoption(parser):
                     help="do not run regtest but record current output")
 
 
-
 @pytest.yield_fixture()
 def regtest(request):
 
     fp = cStringIO.StringIO()
+
     yield fp
+
+    reset, full_path, id_ = _setup(request)
+    if reset:
+        _record_output(fp.getvalue(), full_path)
+    else:
+        _compare_output(fp.getvalue(), full_path, request, id_)
+
+
+def _setup(request):
 
     reset = request.config.getoption("--reset-regtest")
     path = request.fspath.strpath
@@ -36,19 +45,27 @@ def regtest(request):
     target_dir = os.path.join(dirname, "_regtest_outputs")
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
-    full_path = os.path.join(target_dir, "%s.%s.out" % (stem, func_name))
-    if reset:
-        record_output(fp.getvalue(), full_path)
+    id_ = "%s.%s" % (stem, func_name)
+    full_path = os.path.join(target_dir, "%s.out" % (id_))
+
+    return reset, full_path, id_
+
+
+def _compare_output(is_, path, request, id_):
+    capman = request.config.pluginmanager.getplugin('capturemanager')
+    if capman:
+        stdout, stderr = capman.suspendcapture(request)
     else:
-        compare_output(fp.getvalue(), full_path)
-
-
-def compare_output(is_, path):
+        stdout, stderr = None, None
     with open(path, "r") as fp:
         tobe = fp.read()
-    assert is_ == tobe
+    __tracebackhide__ = True
+    collected = list(difflib.unified_diff(is_.split("\n"), tobe.split("\n")))
+    if collected:
+        pytest.fail("\n".join(collected), pytrace=False)
 
 
-def record_output(is_, path):
+
+def _record_output(is_, path):
     with open(path, "w") as fp:
         fp.write(is_)
