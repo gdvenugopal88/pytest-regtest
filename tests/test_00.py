@@ -1,5 +1,11 @@
 def test0(regtest):
-    print >> regtest, "this is the expected output !"
+    print >> regtest, "this is the expected output "
 
 def test1(regtest):
-    print >> regtest, "number one"
+    print >> regtest, "number one !!"
+
+def test2():
+    assert True
+
+def test3():
+    assert False
