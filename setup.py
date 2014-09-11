@@ -37,21 +37,28 @@ fixture, which behaves like an output stream::
         # one way to record output:
         print >> regtest, result
 
-        # alterntive method to record output:
+        # alternative method to record output:
         regtest.write("done")
 
 For recording the *approved* output, you run *py.test* with the *--reset-regtest* flag::
 
     $ py.test --reset-regtest
 
-Now the recorded output is written to a text file in the subfolder ``_regtest_outputs`` next to your
+The recorded output is written to text files in the subfolder ``_regtest_outputs`` next to your
 test scripts.
+
+You can reset recorded output of files and functions individually as::
+
+    $ py.test --reset-regtest tests/test_00.py
+    $ py.test --reset-regtest tests/test_00.py::test_squares_up_to_ten
+
 
 If you want to check that the testing function still produces the same output, you ommit the flag
 and run you tests as usual::
 
     $ py.test
 
+This shows diffs for the tests failing because the current and recorded output deviate.
 """
 
 if __name__ == "__main__":
