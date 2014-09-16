@@ -1,3 +1,4 @@
+import pdb
 #encoding: utf-8
 
 """Regresstion test plugin for pytest.
@@ -19,12 +20,18 @@ def pytest_addoption(parser):
     group.addoption('--reset-regtest',
                     action="store_true",
                     help="do not run regtest but record current output")
+    group.addoption('--suppress-diff',
+                    action="store_true",
+                    default=False,
+                    help="suppress out put of diff in error report")
 
 
 recorded_diffs = dict()
+suppress_diff = False
 
 def pytest_configure(config):
     recorded_diffs.clear()
+    suppress_diff = False
 
 
 @pytest.yield_fixture()
@@ -51,6 +58,8 @@ def pytest_report_teststatus(report):
 def pytest_terminal_summary(terminalreporter):
     tr = terminalreporter
     first = True
+    if suppress_diff:
+        return
     for nodeid, msg in sorted(recorded_diffs.items()):
         if msg:
             if first:
@@ -62,6 +71,9 @@ def pytest_terminal_summary(terminalreporter):
 
 
 def _setup(request):
+
+    global supress_diff
+    supress_diff = request.config.getoption("--suppress-diff")
 
     reset = request.config.getoption("--reset-regtest")
     path = request.fspath.strpath
