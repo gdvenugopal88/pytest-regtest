@@ -72,8 +72,8 @@ def pytest_terminal_summary(terminalreporter):
 
 def _setup(request):
 
-    global supress_diff
-    supress_diff = request.config.getoption("--suppress-diff")
+    global suppress_diff
+    suppress_diff = request.config.getoption("--suppress-diff")
 
     reset = request.config.getoption("--reset-regtest")
     path = request.fspath.strpath
