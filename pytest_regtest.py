@@ -1,5 +1,4 @@
-import pdb
-#encoding: utf-8
+# encoding: utf-8
 
 """Regresstion test plugin for pytest.
 
@@ -27,10 +26,14 @@ def pytest_addoption(parser):
 
 
 recorded_diffs = dict()
+failed_tests = set()
 suppress_diff = False
+
 
 def pytest_configure(config):
     recorded_diffs.clear()
+    failed_tests.clear()
+    global suppress_diff
     suppress_diff = False
 
 
@@ -49,10 +52,14 @@ def regtest(request):
 
 
 def pytest_report_teststatus(report):
+    if report.when == "call":
+        if report.outcome == "failed":
+            failed_tests.add(report.nodeid)
     if report.when == "teardown":
         msg = recorded_diffs.get(report.nodeid, "")
-        if msg:
-            return "rfailed", "R", "Regression test failed"
+        if report.outcome == "passed":
+            if msg and report.nodeid not in failed_tests:
+                return "rfailed", "R", "Regression test failed"
 
 
 def pytest_terminal_summary(terminalreporter):
@@ -61,7 +68,7 @@ def pytest_terminal_summary(terminalreporter):
     if suppress_diff:
         return
     for nodeid, msg in sorted(recorded_diffs.items()):
-        if msg:
+        if msg and nodeid not in failed_tests:
             if first:
                 tr._tw.line()
             first = False
