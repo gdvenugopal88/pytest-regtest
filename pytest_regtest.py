@@ -16,10 +16,10 @@ import pytest
 def pytest_addoption(parser):
     """Add options to control the timeout plugin"""
     group = parser.getgroup('regtest', 'regression test plugin')
-    group.addoption('--reset-regtest',
+    group.addoption('--regtest-reset',
                     action="store_true",
                     help="do not run regtest but record current output")
-    group.addoption('--suppress-diff',
+    group.addoption('--regtest-nodiff',
                     action="store_true",
                     default=False,
                     help="suppress out put of diff in error report")
@@ -27,14 +27,14 @@ def pytest_addoption(parser):
 
 recorded_diffs = dict()
 failed_tests = set()
-suppress_diff = False
+no_diff = False
 
 
 def pytest_configure(config):
     recorded_diffs.clear()
     failed_tests.clear()
-    global suppress_diff
-    suppress_diff = False
+    global no_diff
+    no_diff = False
 
 
 @pytest.yield_fixture()
@@ -65,7 +65,7 @@ def pytest_report_teststatus(report):
 def pytest_terminal_summary(terminalreporter):
     tr = terminalreporter
     first = True
-    if suppress_diff:
+    if no_diff:
         return
     for nodeid, msg in sorted(recorded_diffs.items()):
         if msg and nodeid not in failed_tests:
@@ -79,10 +79,10 @@ def pytest_terminal_summary(terminalreporter):
 
 def _setup(request):
 
-    global suppress_diff
-    suppress_diff = request.config.getoption("--suppress-diff")
+    global no_diff
+    no_diff = request.config.getoption("--regtest-nodiff")
 
-    reset = request.config.getoption("--reset-regtest")
+    reset = request.config.getoption("--regtest-reset")
     path = request.fspath.strpath
     func_name = request.function.__name__
     dirname = os.path.dirname(path)
