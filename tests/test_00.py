@@ -10,3 +10,7 @@ def test2():
 
 def test3():
     assert False
+
+def test4(regtest_redirect):
+    with regtest_redirect():
+        print "hi"

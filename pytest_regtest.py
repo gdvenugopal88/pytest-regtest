@@ -9,6 +9,7 @@ runs.
 import os
 import cStringIO
 import difflib
+import contextlib
 
 import pytest
 
@@ -43,6 +44,28 @@ def regtest(request):
     fp = cStringIO.StringIO()
 
     yield fp
+
+    reset, full_path, id_ = _setup(request)
+    if reset:
+        _record_output(fp.getvalue(), full_path)
+    else:
+        _compare_output(fp.getvalue(), full_path, request, id_)
+
+
+@pytest.yield_fixture()
+def regtest_redirect(request):
+
+    fp = cStringIO.StringIO()
+
+    @contextlib.contextmanager
+    def context(fp=fp):
+        import sys
+        old = sys.stdout
+        sys.stdout = fp
+        yield
+        sys.stdout = old
+
+    yield context
 
     reset, full_path, id_ = _setup(request)
     if reset:
