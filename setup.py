@@ -21,7 +21,9 @@ to the captured output from former runs.
 This is a common technique to start `TDD <http://en.wikipedia.org/wiki/Test-driven_development>`_
 if you have to refactor legacy code which ships without tests.
 
-To install and activate this plugin you have to run::
+To install and activate this plugin you have to run:
+
+.. code::bash
 
     $ pip install pytest-regtest
 
@@ -29,6 +31,8 @@ from your command line.
 
 This *py.test* plugin provides a fixture named *regtest* for recording data by writing to this
 fixture, which behaves like an output stream::
+
+.. code::python
 
     def test_squares_up_to_ten(regtest):
 
@@ -40,25 +44,49 @@ fixture, which behaves like an output stream::
         # alternative method to record output:
         regtest.write("done")
 
+We can redirect stdout to this stream using the *regtest_redirect* fixture::
+
+.. code::python
+
+    def test_squares_up_to_ten(regtest_redirect):
+
+        result = [i*i for i in range(10)]
+
+        with regtest_redirect():
+            print result
+
 For recording the *approved* output, you run *py.test* with the *--reset-regtest* flag::
 
-    $ py.test --reset-regtest
+.. code::bash
+
+    $ py.test --regtest-reset
 
 The recorded output is written to text files in the subfolder ``_regtest_outputs`` next to your
 test scripts.
 
 You can reset recorded output of files and functions individually as::
 
-    $ py.test --reset-regtest tests/test_00.py
-    $ py.test --reset-regtest tests/test_00.py::test_squares_up_to_ten
+.. code::bash
+
+    $ py.test --regtest-reset tests/test_00.py
+    $ py.test --regtest-reset tests/test_00.py::test_squares_up_to_ten
 
 
 If you want to check that the testing function still produces the same output, you ommit the flag
 and run you tests as usual::
 
+.. code::bash
+
     $ py.test
 
 This shows diffs for the tests failing because the current and recorded output deviate.
+
+To supress the diff and only see the stats use::
+
+.. code::bash
+
+    $ py.test --regtest-nodiff
+
 """
 
 if __name__ == "__main__":
