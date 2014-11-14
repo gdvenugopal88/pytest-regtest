@@ -26,18 +26,28 @@ data by writing to this fixture, which behaves like an output stream:
         # alternative method to record output:
         regtest.write("done")
 
+We can redirect stdout to this stream using the *regtest\_redirect*
+fixture:
+
+    def test_squares_up_to_ten(regtest_redirect):
+
+        result = [i*i for i in range(10)]
+
+        with regtest_redirect():
+            print result
+
 For recording the *approved* output, you run *py.test* with the
 *--reset-regtest* flag:
 
-    $ py.test --reset-regtest
+    $ py.test --regtest-reset
 
 The recorded output is written to text files in the subfolder
 `_regtest_outputs` next to your test scripts.
 
 You can reset recorded output of files and functions individually as:
 
-    $ py.test --reset-regtest tests/test_00.py
-    $ py.test --reset-regtest tests/test_00.py::test_squares_up_to_ten
+    $ py.test --regtest-reset tests/test_00.py
+    $ py.test --regtest-reset tests/test_00.py::test_squares_up_to_ten
 
 If you want to check that the testing function still produces the same
 output, you ommit the flag and run you tests as usual:
@@ -46,3 +56,7 @@ output, you ommit the flag and run you tests as usual:
 
 This shows diffs for the tests failing because the current and recorded
 output deviate.
+
+To supress the diff and only see the stats use:
+
+    $ py.test --regtest-nodiff
