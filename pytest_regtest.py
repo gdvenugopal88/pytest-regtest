@@ -38,6 +38,15 @@ def pytest_configure(config):
     no_diff = False
 
 
+def _finalize(fp, request):
+
+    reset, full_path, id_ = _setup(request)
+    if reset:
+        _record_output(fp.getvalue(), full_path)
+    else:
+        _compare_output(fp.getvalue(), full_path, request, id_)
+
+
 @pytest.yield_fixture()
 def regtest(request):
 
@@ -45,11 +54,7 @@ def regtest(request):
 
     yield fp
 
-    reset, full_path, id_ = _setup(request)
-    if reset:
-        _record_output(fp.getvalue(), full_path)
-    else:
-        _compare_output(fp.getvalue(), full_path, request, id_)
+    _finalize(fp, request)
 
 
 @pytest.yield_fixture()
@@ -67,11 +72,31 @@ def regtest_redirect(request):
 
     yield context
 
-    reset, full_path, id_ = _setup(request)
-    if reset:
-        _record_output(fp.getvalue(), full_path)
-    else:
-        _compare_output(fp.getvalue(), full_path, request, id_)
+    _finalize(fp, request)
+
+
+"""
+
+# THIS DOES NOT WORK AS INTENDED BECAUSE OF py.tests INTERNAL REDIRECTION !
+# I LEAVE THIS SNIPPET HERE TO AVOID ANOTHER UNSUCCUESSFULL IMPLEMENTATION IN THE FUTURE.
+
+@pytest.yield_fixture()
+def regtest_capture_all(request):
+
+    fp = cStringIO.StringIO()
+
+    import sys
+    old = sys.stdout
+    sys.stdout = fp
+
+    try:
+        yield
+    finally:
+        sys.stdout = old
+
+    _finalize(fp, request)
+
+"""
 
 
 def pytest_report_teststatus(report):
