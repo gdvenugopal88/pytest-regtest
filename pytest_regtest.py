@@ -151,8 +151,11 @@ def _compare_output(is_, path, request, id_):
         stdout, stderr = capman.suspendcapture(request)
     else:
         stdout, stderr = None, None
-    with open(path, "r") as fp:
-        tobe = fp.read()
+    if os.path.exists(path):
+        with open(path, "r") as fp:
+            tobe = fp.read()
+    else:
+        tobe = ""
     __tracebackhide__ = True
     collected = list(difflib.unified_diff(is_.split("\n"), tobe.split("\n"), "is", "to", lineterm=""))
     if collected:
