@@ -6,10 +6,11 @@ This plugin enables recording of ouput of testfunctions which can be compared on
 runs.
 """
 
-import os
 import cStringIO
-import difflib
 import contextlib
+import difflib
+import os
+import sys
 
 import pytest
 
@@ -24,18 +25,24 @@ def pytest_addoption(parser):
                     action="store_true",
                     default=False,
                     help="suppress out put of diff in error report")
+    group.addoption('--regtest-tee',
+                    action="store_true",
+                    default=False,
+                    help="print recorded results to console too")
 
 
 recorded_diffs = dict()
 failed_tests = set()
 no_diff = False
+tee = False
 
 
 def pytest_configure(config):
     recorded_diffs.clear()
     failed_tests.clear()
-    global no_diff
+    global no_diff, tee
     no_diff = False
+    tee = False
 
 
 def _finalize(fp, request):
@@ -47,10 +54,25 @@ def _finalize(fp, request):
         _compare_output(fp.getvalue(), full_path, request, id_)
 
 
+class Tee(object):
+
+    def __init__(self, string_io):
+        self.string_io = string_io
+
+    def write(self, data):
+        self.string_io.write(data)
+        sys.__stdout__.write(data)
+
+    def __getattr__(self, name):
+        return getattr(self.string_io, name)
+
+
 @pytest.yield_fixture()
 def regtest(request):
 
     fp = cStringIO.StringIO()
+    if tee:
+        fp = Tee(fp)
 
     yield fp
 
@@ -61,6 +83,8 @@ def regtest(request):
 def regtest_redirect(request):
 
     fp = cStringIO.StringIO()
+    if tee:
+        fp = Tee(fp)
 
     @contextlib.contextmanager
     def context(fp=fp):
@@ -127,9 +151,9 @@ def pytest_terminal_summary(terminalreporter):
 
 def _setup(request):
 
-    global no_diff
+    global no_diff, tee
     no_diff = request.config.getoption("--regtest-nodiff")
-
+    tee = request.config.getoption("--regtest-tee")
     reset = request.config.getoption("--regtest-reset")
     path = request.fspath.strpath
     func_name = request.function.__name__
