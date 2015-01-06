@@ -1,6 +1,6 @@
 from setuptools import setup
 
-VERSION = (0, 4, 1)
+VERSION = (0, 5, 0)
 
 AUTHOR = "Uwe Schmitt"
 AUTHOR_EMAIL = "uwe.schmitt@id.ethz.ch"
@@ -86,6 +86,13 @@ To supress the diff and only see the stats use::
 .. code::bash
 
     $ py.test --regtest-nodiff
+
+If you want to see the recorded output on the commandline use::
+
+.. code::bash
+
+    $ py.test --regtest-tee -s
+
 
 """
 

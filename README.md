@@ -74,3 +74,9 @@ To supress the diff and only see the stats use:
 ``` {.sourceCode .bash}
 $ py.test --regtest-nodiff
 ```
+
+If you want to see the recorded output on the commandline use:
+
+``` {.sourceCode .bash}
+$ py.test --regtest-tee -s
+```
