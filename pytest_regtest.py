@@ -29,11 +29,16 @@ def pytest_addoption(parser):
                     action="store_true",
                     default=False,
                     help="print recorded results to console too")
+    group.addoption('--regtest-ignore-line-endings',
+                    action="store_true",
+                    default=False,
+                    help="strip whitespaces at end of recorded lines")
 
 
 recorded_diffs = dict()
 failed_tests = set()
 no_diff = False
+ignore_line_endings = False
 tee = False
 
 
@@ -43,6 +48,7 @@ def pytest_configure(config):
     global no_diff, tee
     no_diff = False
     tee = False
+    ignore_line_endings = False
 
 
 def _finalize(fp, request):
@@ -151,10 +157,11 @@ def pytest_terminal_summary(terminalreporter):
 
 def _setup(request):
 
-    global no_diff, tee
+    global no_diff, tee, ignore_line_endings
     no_diff = request.config.getoption("--regtest-nodiff")
     tee = request.config.getoption("--regtest-tee")
     reset = request.config.getoption("--regtest-reset")
+    ignore_line_endings = request.config.getoption("--regtest-ignore-line-endings")
     path = request.fspath.strpath
     func_name = request.function.__name__
     dirname = os.path.dirname(path)
@@ -181,7 +188,12 @@ def _compare_output(is_, path, request, id_):
     else:
         tobe = ""
     __tracebackhide__ = True
-    collected = list(difflib.unified_diff(is_.split("\n"), tobe.split("\n"), "is", "to", lineterm=""))
+    is_ = is_.split("\n")
+    tobe = tobe.split("\n")
+    if ignore_line_endings:
+        is_ = [line.rstrip() for line in is_]
+        tobe = [line.rstrip() for line in tobe]
+    collected = list(difflib.unified_diff(is_, tobe, "is", "tobe", lineterm=""))
     if collected:
         recorded_diffs[request.node.nodeid] = "\n".join(collected)
     else:

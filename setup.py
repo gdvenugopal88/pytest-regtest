@@ -77,6 +77,11 @@ If you want to see the recorded output on the commandline use::
 
     $ py.test --regtest-tee -s
 
+If you develop on mixed platforms it might be usefull to ignore white spaces at the
+end of the lines when comparing output. This can be achieved by specifying
+
+    $ py.test --regtest-ignore-line-endings
+
 """
 
 if __name__ == "__main__":

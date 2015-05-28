@@ -1,6 +1,6 @@
 def test0(regtest):
     print "test0"
-    print >> regtest, "this is the expected output "
+    print >> regtest, "this is the expected output\t"
 
 def test1(regtest):
     print "test1"
