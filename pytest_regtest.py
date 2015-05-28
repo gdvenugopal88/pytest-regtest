@@ -201,5 +201,10 @@ def _compare_output(is_, path, request, id_):
 
 
 def _record_output(is_, path):
+    if ignore_line_endings:
+        lines = is_.split("\n")
+        lines = [line.rstrip() for line in lines]
+        is_ = "\n".join(lines)
+
     with open(path, "w") as fp:
         fp.write(is_)
