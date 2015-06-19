@@ -29,16 +29,16 @@ def pytest_addoption(parser):
                     action="store_true",
                     default=False,
                     help="print recorded results to console too")
-    group.addoption('--regtest-ignore-line-endings',
+    group.addoption('--regtest-regard-line-endings',
                     action="store_true",
                     default=False,
-                    help="strip whitespaces at end of recorded lines")
+                    help="do not strip whitespaces at end of recorded lines")
 
 
 recorded_diffs = dict()
 failed_tests = set()
 no_diff = False
-ignore_line_endings = False
+ignore_line_endings = True
 tee = False
 
 
@@ -48,7 +48,7 @@ def pytest_configure(config):
     global no_diff, tee
     no_diff = False
     tee = False
-    ignore_line_endings = False
+    ignore_line_endings = True
 
 
 def _finalize(fp, request):
@@ -161,7 +161,7 @@ def _setup(request):
     no_diff = request.config.getoption("--regtest-nodiff")
     tee = request.config.getoption("--regtest-tee")
     reset = request.config.getoption("--regtest-reset")
-    ignore_line_endings = request.config.getoption("--regtest-ignore-line-endings")
+    ignore_line_endings = not request.config.getoption("--regtest-regard-line-endings")
     path = request.fspath.strpath
     func_name = request.function.__name__
     dirname = os.path.dirname(path)
