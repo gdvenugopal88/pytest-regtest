@@ -16,3 +16,6 @@ def test3():
 def test4(regtest_redirect):
     with regtest_redirect():
         print "hi"
+
+def test_with_object_id(regtest):
+    print >> regtest, test_with_object_id

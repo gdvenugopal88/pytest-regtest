@@ -11,6 +11,7 @@ import contextlib
 import difflib
 import os
 import sys
+import re
 
 import pytest
 
@@ -53,11 +54,14 @@ def pytest_configure(config):
 
 def _finalize(fp, request):
 
+    def value(fp):
+        return re.sub("at 0x[0-9a-f]+", "at 0x?????????", fp.getvalue())
+
     reset, full_path, id_ = _setup(request)
     if reset:
-        _record_output(fp.getvalue(), full_path)
+        _record_output(value(fp), full_path)
     else:
-        _compare_output(fp.getvalue(), full_path, request, id_)
+        _compare_output(value(fp), full_path, request, id_)
 
 
 class Tee(object):
