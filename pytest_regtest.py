@@ -55,7 +55,7 @@ def pytest_configure(config):
 def _finalize(fp, request):
 
     def value(fp):
-        return re.sub("at 0x[0-9a-f]+", "at 0x?????????", fp.getvalue())
+        return re.sub(" 0x[0-9a-f]+ ", " 0x????????? ", fp.getvalue())
 
     reset, full_path, id_ = _setup(request)
     if reset:
