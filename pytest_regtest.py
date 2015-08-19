@@ -167,7 +167,7 @@ def _setup(request):
     reset = request.config.getoption("--regtest-reset")
     ignore_line_endings = not request.config.getoption("--regtest-regard-line-endings")
     path = request.fspath.strpath
-    func_name = request.function.__name__
+    func_name = request.node.name
     dirname = os.path.dirname(path)
     basename = os.path.basename(path)
     stem, ext = os.path.splitext(basename)
