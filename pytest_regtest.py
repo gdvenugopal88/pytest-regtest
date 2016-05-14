@@ -6,7 +6,11 @@ This plugin enables recording of ouput of testfunctions which can be compared on
 runs.
 """
 
-import cStringIO
+try:
+    import cStringIO.StringIO as StringIO
+except ImportError:
+    from io import StringIO
+
 import contextlib
 import difflib
 import os
@@ -80,7 +84,7 @@ class Tee(object):
 @pytest.yield_fixture()
 def regtest(request):
 
-    fp = cStringIO.StringIO()
+    fp = StringIO()
     if tee:
         fp = Tee(fp)
 
@@ -92,7 +96,7 @@ def regtest(request):
 @pytest.yield_fixture()
 def regtest_redirect(request):
 
-    fp = cStringIO.StringIO()
+    fp = StringIO()
     if tee:
         fp = Tee(fp)
 
@@ -117,7 +121,7 @@ def regtest_redirect(request):
 @pytest.yield_fixture()
 def regtest_capture_all(request):
 
-    fp = cStringIO.StringIO()
+    fp = StringIO()
 
     import sys
     old = sys.stdout
