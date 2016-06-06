@@ -7,7 +7,7 @@ runs.
 """
 
 try:
-    import cStringIO.StringIO as StringIO
+    from cStringIO import StringIO
 except ImportError:
     from io import StringIO
 
