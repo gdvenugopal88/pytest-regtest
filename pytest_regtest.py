@@ -191,8 +191,8 @@ def _compare_output(is_, path, request, id_):
     else:
         stdout, stderr = None, None
     if os.path.exists(path):
-        with open(path, "r") as fp:
-            tobe = fp.read()
+        with open(path, "rb") as fp:
+            tobe = str(fp.read(), "utf-8")
     else:
         tobe = ""
     __tracebackhide__ = True
@@ -214,5 +214,5 @@ def _record_output(is_, path):
         lines = [line.rstrip() for line in lines]
         is_ = "\n".join(lines)
 
-    with open(path, "w") as fp:
-        fp.write(is_)
+    with open(path, "wb") as fp:
+        fp.write(is_.encode("utf-8"))
