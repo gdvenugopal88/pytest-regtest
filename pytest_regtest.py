@@ -6,10 +6,14 @@ This plugin enables recording of ouput of testfunctions which can be compared on
 runs.
 """
 
-try:
-    from cStringIO import StringIO
-except ImportError:
+import sys
+
+IS_PY3 = sys.version_info.major == 3
+
+if IS_PY3:
     from io import StringIO
+else:
+    from cStringIO import StringIO
 
 import contextlib
 import difflib
@@ -192,7 +196,10 @@ def _compare_output(is_, path, request, id_):
         stdout, stderr = None, None
     if os.path.exists(path):
         with open(path, "rb") as fp:
-            tobe = str(fp.read(), "utf-8")
+            if IS_PY3:
+                tobe = str(fp.read(), "utf-8")
+            else:
+                tobe = fp.read()
     else:
         tobe = ""
     __tracebackhide__ = True
