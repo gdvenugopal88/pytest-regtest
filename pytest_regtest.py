@@ -8,6 +8,7 @@ runs.
 
 import sys
 
+
 IS_PY3 = sys.version_info.major == 3
 
 if IS_PY3:
@@ -30,10 +31,6 @@ def pytest_addoption(parser):
     group.addoption('--regtest-reset',
                     action="store_true",
                     help="do not run regtest but record current output")
-    group.addoption('--regtest-nodiff',
-                    action="store_true",
-                    default=False,
-                    help="suppress out put of diff in error report")
     group.addoption('--regtest-tee',
                     action="store_true",
                     default=False,
@@ -44,18 +41,12 @@ def pytest_addoption(parser):
                     help="do not strip whitespaces at end of recorded lines")
 
 
-recorded_diffs = dict()
-failed_tests = set()
-no_diff = False
 ignore_line_endings = True
 tee = False
 
 
 def pytest_configure(config):
-    recorded_diffs.clear()
-    failed_tests.clear()
-    global no_diff, tee
-    no_diff = False
+    global tee, ignore_line_endings
     tee = False
     ignore_line_endings = True
 
@@ -69,7 +60,7 @@ def _finalize(fp, request):
     if reset:
         _record_output(value(fp), full_path)
     else:
-        _compare_output(value(fp), full_path, request, id_)
+        return _compare_output(value(fp), full_path, request, id_)
 
 
 class Tee(object):
@@ -87,19 +78,31 @@ class Tee(object):
 
 @pytest.yield_fixture()
 def regtest(request):
-
+    """This fixture acts like a writeable stream which can be used to record
+    expected / current output depending on the flag --regtest-reset which causes
+    recording of approved output. Without this flag the regtest fixture will decide
+    during teardown if the currently recorded output is still the same as the
+    previously recorded output.
+    """
     fp = StringIO()
     if tee:
         fp = Tee(fp)
 
     yield fp
 
-    _finalize(fp, request)
+    diff = _finalize(fp, request)
+
+    if diff is not None:
+        msg = "\nRegression test failed:\n\n"
+        msg += diff
+        request.raiseerror(msg)
 
 
 @pytest.yield_fixture()
 def regtest_redirect(request):
-
+    """regest_redirect is a context manager which records output to sys.stdout
+    as long as active. Else it works similar to the regtest fixture.
+    """
     fp = StringIO()
     if tee:
         fp = Tee(fp)
@@ -141,36 +144,9 @@ def regtest_capture_all(request):
 """
 
 
-def pytest_report_teststatus(report):
-    if report.when == "call":
-        if report.outcome == "failed":
-            failed_tests.add(report.nodeid)
-    if report.when == "teardown":
-        msg = recorded_diffs.get(report.nodeid, "")
-        if report.outcome == "passed":
-            if msg and report.nodeid not in failed_tests:
-                return "rfailed", "R", "Regression test failed"
-
-
-def pytest_terminal_summary(terminalreporter):
-    tr = terminalreporter
-    first = True
-    if no_diff:
-        return
-    for nodeid, msg in sorted(recorded_diffs.items()):
-        if msg and nodeid not in failed_tests:
-            if first:
-                tr._tw.line()
-            first = False
-            tr._tw.sep(".", " %s rfailed because recorded output differs as follows " % nodeid)
-            tr._tw.line()
-            tr._tw.line(msg)
-
-
 def _setup(request):
 
-    global no_diff, tee, ignore_line_endings
-    no_diff = request.config.getoption("--regtest-nodiff")
+    global tee, ignore_line_endings
     tee = request.config.getoption("--regtest-tee")
     reset = request.config.getoption("--regtest-reset")
     ignore_line_endings = not request.config.getoption("--regtest-regard-line-endings")
@@ -202,7 +178,6 @@ def _compare_output(is_, path, request, id_):
                 tobe = fp.read()
     else:
         tobe = ""
-    __tracebackhide__ = True
     is_ = is_.split("\n")
     tobe = tobe.split("\n")
     if ignore_line_endings:
@@ -210,9 +185,8 @@ def _compare_output(is_, path, request, id_):
         tobe = [line.rstrip() for line in tobe]
     collected = list(difflib.unified_diff(is_, tobe, "is", "tobe", lineterm=""))
     if collected:
-        recorded_diffs[request.node.nodeid] = "\n".join(collected)
-    else:
-        recorded_diffs[request.node.nodeid] = ""
+        return "\n".join(collected)
+    return None
 
 
 def _record_output(is_, path):
@@ -222,4 +196,7 @@ def _record_output(is_, path):
         is_ = "\n".join(lines)
 
     with open(path, "wb") as fp:
-        fp.write(is_.encode("utf-8"))
+        if IS_PY3:
+            fp.write(is_.encode("utf-8"))
+        else:
+            fp.write(is_)
