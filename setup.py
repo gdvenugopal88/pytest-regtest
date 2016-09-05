@@ -21,7 +21,7 @@ to the captured output from former runs.
 This is a common technique to start `TDD <http://en.wikipedia.org/wiki/Test-driven_development>`_
 if you have to refactor legacy code which ships without tests.
 
-To install and activate this plugin you have to run:
+To install and activate this plugin you have to run::
 
     $ pip install pytest-regtest
 
@@ -77,7 +77,7 @@ If you want to see the during the test run recorded output use::
     $ py.test --regtest-tee -s
 
 If you develop on mixed platforms it might be usefull to ignore white spaces at the
-end of the lines when comparing output. This can be achieved by specifying
+end of the lines when comparing output. This can be achieved by specifying::
 
     $ py.test --regtest-ignore-line-endings
 
