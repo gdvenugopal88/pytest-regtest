@@ -1,6 +1,6 @@
 from setuptools import setup
 
-VERSION = (0, 10, 0)
+VERSION = (0, 11, 0)
 
 AUTHOR = "Uwe Schmitt"
 AUTHOR_EMAIL = "uwe.schmitt@id.ethz.ch"
@@ -61,7 +61,6 @@ You can reset recorded output of files and functions individually as::
     $ py.test --regtest-reset tests/test_00.py
     $ py.test --regtest-reset tests/test_00.py::test_squares_up_to_ten
 
-
 If you want to check that the testing function still produces the same output, you ommit the flag
 and run you tests as usual::
 
@@ -73,7 +72,7 @@ To supress the diff and only see the stats use::
 
     $ py.test --regtest-nodiff
 
-If you want to see the recorded output on the commandline use::
+If you want to see the during the test run recorded output use::
 
     $ py.test --regtest-tee -s
 

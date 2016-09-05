@@ -1,12 +1,22 @@
 # encoding: utf-8
 
+from __future__ import print_function
+
 """Regresstion test plugin for pytest.
 
 This plugin enables recording of ouput of testfunctions which can be compared on subsequent
 runs.
 """
 
+import contextlib
+import difflib
+import os
+import re
+import string
 import sys
+
+import py
+import pytest
 
 
 IS_PY3 = sys.version_info.major == 3
@@ -15,14 +25,6 @@ if IS_PY3:
     from io import StringIO
 else:
     from cStringIO import StringIO
-
-import contextlib
-import difflib
-import os
-import sys
-import re
-
-import pytest
 
 
 def pytest_addoption(parser):
@@ -39,38 +41,49 @@ def pytest_addoption(parser):
                     action="store_true",
                     default=False,
                     help="do not strip whitespaces at end of recorded lines")
+    group.addoption('--regtest-nodiff',
+                    action="store_true",
+                    default=False,
+                    help="do not show diff output for failed regresson tests")
 
 
 ignore_line_endings = True
 tee = False
+reset = False
+nodiff = False
 
 
 def pytest_configure(config):
-    global tee, ignore_line_endings
-    tee = False
-    ignore_line_endings = True
+    global tee, ignore_line_endings, reset, nodiff
+    tee = config.getvalue("--regtest-tee")
+    ignore_line_endings = not config.getvalue("--regtest-regard-line-endings")
+    reset = config.getvalue("--regtest-reset")
+    nodiff = config.getvalue("--regtest-nodiff")
 
 
-def _finalize(fp, request):
+class WithAttributes(object):
 
-    def value(fp):
-        return re.sub(" 0x[0-9a-f]+", " 0x?????????", fp.getvalue())
+    """we need to add an attribute to an StringIO instance, which
+    is not allowed if we want to do this directly. Instead we wrap
+    the object in an instance of this class, so attribute access
+    is allowed again"""
 
-    reset, full_path, id_ = _setup(request)
-    if reset:
-        _record_output(value(fp), full_path)
-    else:
-        return _compare_output(value(fp), full_path, request, id_)
+    def __init__(self, obj):
+        self.obj = obj
+
+    def __getattr__(self, name):
+        return getattr(self.obj, name)
 
 
 class Tee(object):
 
-    def __init__(self, string_io):
+    def __init__(self, string_io, tw):
         self.string_io = string_io
+        self.tw = tw
 
     def write(self, data):
         self.string_io.write(data)
-        sys.__stdout__.write(data)
+        self.tw.write(data, green=True)
 
     def __getattr__(self, name):
         return getattr(self.string_io, name)
@@ -78,47 +91,64 @@ class Tee(object):
 
 @pytest.yield_fixture()
 def regtest(request):
-    """This fixture acts like a writeable stream which can be used to record
-    expected / current output depending on the flag --regtest-reset which causes
-    recording of approved output. Without this flag the regtest fixture will decide
-    during teardown if the currently recorded output is still the same as the
-    previously recorded output.
-    """
-    fp = StringIO()
+    """This fixture acts like a writeable stream which can be used to record expected / current
+    output depending on the flag --regtest-reset which causes recording of approved output. Without
+    this flag the regtest fixture will decide during teardown if the currently recorded output is
+    still the same as the previously recorded output.  """
+
+    # we attach the request to the fixture object as I found no other way to retreive the request
+    # in the pytest_runtest_call hook
+
+    fp = WithAttributes(StringIO())
+
     if tee:
-        fp = Tee(fp)
+        tw = py.io.TerminalWriter()
+        fp = Tee(fp, tw)
+        tw.line()
+        id_ = _test_function_identifier(request)
+        line = "REGTEST OUTPUT FROM %s " % id_
+        line = string.ljust(line, tw.fullwidth, "-")
+        tw.line(line, green=True)
+        tw.line()
 
+    fp.request = request
     yield fp
-
-    diff = _finalize(fp, request)
-
-    if diff is not None:
-        msg = "\nRegression test failed:\n\n"
-        msg += diff
-        request.raiseerror(msg)
 
 
 @pytest.yield_fixture()
 def regtest_redirect(request):
-    """regest_redirect is a context manager which records output to sys.stdout
-    as long as active. Else it works similar to the regtest fixture.
-    """
-    fp = StringIO()
+    """regest_redirect is a context manager which records output to sys.stdout as long as active.
+    Else it works similar to the regtest fixture.  """
+
+    fp = WithAttributes(StringIO())
+    tw = None
     if tee:
-        fp = Tee(fp)
+        tw = py.io.TerminalWriter()
+        fp = Tee(fp, tw)
 
     @contextlib.contextmanager
-    def context(fp=fp):
-        import sys
+    def context(fp=fp, tw=tw, request=request):
         old = sys.stdout
         sys.stdout = fp
-        yield
-        sys.stdout = old
+        if tw is not None:
+            tw.line()
+            id_ = _test_function_identifier(request)
+            line = "REGTEST REDIRECT OUTPUT FROM %s " % id_
+            line = string.ljust(line, tw.fullwidth, "-")
+            tw.line(line, green=True)
+            tw.line()
+        try:
+            yield
+        finally:
+            sys.stdout = old
+
+    # we attach the request to the fixture object as I found no other way to retreive the request
+    # in the pytest_runtest_call hook, the fp attribute is needed in the hook as well:
+
+    context.fp = fp
+    context.request = request
 
     yield context
-
-    _finalize(fp, request)
-
 
 """
 
@@ -144,12 +174,83 @@ def regtest_capture_all(request):
 """
 
 
-def _setup(request):
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_call(item):
 
-    global tee, ignore_line_endings
-    tee = request.config.getoption("--regtest-tee")
-    reset = request.config.getoption("--regtest-reset")
-    ignore_line_endings = not request.config.getoption("--regtest-regard-line-endings")
+    try:
+        outcome = yield
+    except Exception:
+        raise
+    else:
+        # we only handle regtest fixture if no other other exception came up when testing:
+        if outcome.excinfo is not None:
+            return
+
+        regtest = item.funcargs.get("regtest")
+        if regtest is not None:
+            _handle_regtest_result(regtest)
+
+        regtest_redirect = item.funcargs.get("regtest_redirect")
+        if regtest_redirect is not None:
+            _handle_regtest_redirect_result(regtest_redirect)
+
+
+def _handle_regtest_result(fp):
+    request = fp.request
+    _finalize(fp.getvalue(), request)
+
+
+def _handle_regtest_redirect_result(context):
+    request = context.request
+    fp = context.fp
+    _finalize(fp.getvalue(), request)
+
+
+""" from
+http://stackoverflow.com/questions/898669/how-can-i-detect-if-a-file-is-binary-non-text-in-python
+"""
+
+textchars = bytearray({7, 8, 9, 10, 12, 13, 27} | set(range(0x20, 0x100)) - {0x7f})
+
+"""
+todo: find binary segments ...: binary segments separted by at least 10 ascii characters !!!
+      -replace them with hexdigest
+"""
+
+
+def is_binary_string(bytes):
+    return bool(bytes.translate(None, textchars))
+
+
+def _finalize(recorded, request):
+
+    def cleanup(recorded):
+        """replace hex object ids in output by 0x?????????"""
+        return re.sub(" 0x[0-9a-f]+",        " 0x?????????", recorded)
+
+    recorded = cleanup(recorded)
+
+    path = _path_to_regest_recording_file(request)
+    if reset:
+        _reset(recorded, path)
+    else:
+        tobe = _read(path)
+        diff = _compare(recorded, tobe)
+        if diff is not None:
+            msg = "\nRegression test failed"
+            if not nodiff:
+                msg += "\n\n" + diff
+            request.raiseerror(msg)
+
+
+def _test_function_identifier(request):
+    path = request.fspath.strpath
+    func_name = request.node.name
+    return "%s::%s" % (path, func_name)
+
+
+def _path_to_regest_recording_file(request):
+
     path = request.fspath.strpath
     func_name = request.node.name
     dirname = os.path.dirname(path)
@@ -161,15 +262,10 @@ def _setup(request):
         os.makedirs(target_dir)
     id_ = "%s.%s" % (stem, func_name)
     full_path = os.path.join(target_dir, "%s.out" % (id_))
-    return reset, full_path, id_
+    return full_path
 
 
-def _compare_output(is_, path, request, id_):
-    capman = request.config.pluginmanager.getplugin('capturemanager')
-    if capman:
-        stdout, stderr = capman.suspendcapture(request)
-    else:
-        stdout, stderr = None, None
+def _read(path):
     if os.path.exists(path):
         with open(path, "rb") as fp:
             if IS_PY3:
@@ -178,6 +274,10 @@ def _compare_output(is_, path, request, id_):
                 tobe = fp.read()
     else:
         tobe = ""
+    return tobe
+
+
+def _compare(is_, tobe):
     is_ = is_.split("\n")
     tobe = tobe.split("\n")
     if ignore_line_endings:
@@ -189,14 +289,14 @@ def _compare_output(is_, path, request, id_):
     return None
 
 
-def _record_output(is_, path):
+def _reset(recorded_output, path):
     if ignore_line_endings:
-        lines = is_.split("\n")
+        lines = recorded_output.split("\n")
         lines = [line.rstrip() for line in lines]
-        is_ = "\n".join(lines)
+        recorded_output = "\n".join(lines)
 
     with open(path, "wb") as fp:
         if IS_PY3:
-            fp.write(is_.encode("utf-8"))
+            fp.write(recorded_output.encode("utf-8"))
         else:
-            fp.write(is_)
+            fp.write(recorded_output)
