@@ -64,7 +64,7 @@ function so far and thus the test will fail with a message including a diff::
     >       -done
     >       +
 
-For accepting this output, we run *pytest* with the *--reset-regtest* flag::
+For accepting this output, we run *pytest* with the *--regtest-reset* flag::
 
     $ py.test --regtest-reset
 
@@ -102,10 +102,11 @@ To see recorded output during test execution run::
 
     $ py.test --regtest-tee -s
 
-If you develop on mixed platforms it might be usefull to ignore white spaces at the
-end of the lines when comparing output. This can be achieved by specifying::
+To support testing of the same code on different platforms by default *pytest-regtest* ignores
+differences in line breaks when comparing the approved to the actual output. To switch this off use
+the *--regtest-regard-line-endings* flag::
 
-    $ py.test --regtest-ignore-line-endings
+    $ py.test --regtest-regard-line-endings
 
 """
 
