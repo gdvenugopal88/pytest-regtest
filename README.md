@@ -2,81 +2,90 @@ pytest-regtest
 ==============
 
 This *pytest*-plugin allows capturing of output of test functions which
-can be compared to the captured output from former runs. This is a
-common technique to start
+can be compared to the captured output from former runs.
+
+This is a common technique to start
 [TDD](http://en.wikipedia.org/wiki/Test-driven_development) if you have
 to refactor legacy code which ships without tests.
 
-To install and activate this plugin you have to run:
+To install and activate this plugin execute:
 
-``` {.sourceCode .bash}
-$ pip install pytest-regtest
-```
+    $ pip install pytest-regtest
 
 from your command line.
 
 This *py.test* plugin provides a fixture named *regtest* for recording
 data by writing to this fixture, which behaves like an output stream:
 
-``` {.sourceCode .python}
-def test_squares_up_to_ten(regtest):
+    from __future__ import print_function
 
-    result = [i*i for i in range(10)]
+    def test_squares_up_to_ten(regtest):
 
-    # one way to record output:
-    print >> regtest, result
+        result = [i*i for i in range(10)]
 
-    # alternative method to record output:
-    regtest.write("done")
-```
+        # one way to record output:
+        print(result, file=regtest)
 
-We can redirect stdout to this stream using the *regtest\_redirect*
-fixture:
+        # alternative method to record output:
+        regtest.write("done")
 
-``` {.sourceCode .python}
-def test_squares_up_to_ten(regtest_redirect):
+If you run this test script with *py.test* the first time there is no
+recorded output for this test function so far and thus the test will
+fail with a message including a diff:
 
-    result = [i*i for i in range(10)]
+    $ py.test
+    ...
 
-    with regtest_redirect():
-        print result
-```
+    def test_squares_up_to_ten(regtest):
+    E
+    >       Regression test failed
+    >
+    >       --- is
+    >       +++ tobe
+    >       @@ -1,2 +1 @@
+    >       -[0, 1, 4, 9, 16, 25, 36, 49, 64, 81]
+    >       -done
+    >       +
 
-For recording the *approved* output, you run *py.test* with the
-*--reset-regtest* flag:
+For accepting this output, we run *py.test* with the *--reset-regtest*
+flag:
 
-``` {.sourceCode .bash}
-$ py.test --regtest-reset
-```
+    $ py.test --regtest-reset
 
-The recorded output is written to text files in the subfolder
-`_regtest_outputs` next to your test scripts.
+The recorded output is written to files in the subfolder
+`_regtest_outputs` next to your test script(s).
+
+Now the next execution of *py.test* will succeed:
+
+    $ py.test
+
+Other features
+--------------
+
+Another way to record output is the *regtest\_redirect* fixture:
+
+    def test_squares_up_to_ten(regtest_redirect):
+
+        result = [i*i for i in range(10)]
+
+        with regtest_redirect():
+            print result
 
 You can reset recorded output of files and functions individually as:
 
-``` {.sourceCode .bash}
-$ py.test --regtest-reset tests/test_00.py
-$ py.test --regtest-reset tests/test_00.py::test_squares_up_to_ten
-```
-
-If you want to check that the testing function still produces the same
-output, you ommit the flag and run you tests as usual:
-
-``` {.sourceCode .bash}
-$ py.test
-```
-
-This shows diffs for the tests failing because the current and recorded
-output deviate.
+    $ py.test --regtest-reset tests/test_00.py
+    $ py.test --regtest-reset tests/test_00.py::test_squares_up_to_ten
 
 To supress the diff and only see the stats use:
 
-``` {.sourceCode .bash}
-$ py.test --regtest-nodiff
-```
+    $ py.test --regtest-nodiff
 
-If you want to see the recorded output on the commandline use:
+If you want to see the during the test run recorded output use:
 
-``` {.sourceCode .bash}
-$ py.test --regtest-tee -s
-```
+    $ py.test --regtest-tee -s
+
+If you develop on mixed platforms it might be usefull to ignore white
+spaces at the end of the lines when comparing output. This can be
+achieved by specifying:
+
+    $ py.test --regtest-ignore-line-endings
