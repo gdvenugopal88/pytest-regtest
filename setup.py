@@ -1,6 +1,6 @@
 from setuptools import setup
 
-VERSION = (0, 12, 2)
+VERSION = (0, 13, 0)
 
 AUTHOR = "Uwe Schmitt"
 AUTHOR_EMAIL = "uwe.schmitt@id.ethz.ch"
