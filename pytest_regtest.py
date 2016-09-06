@@ -211,6 +211,7 @@ http://stackoverflow.com/questions/898669/how-can-i-detect-if-a-file-is-binary-n
 """
 
 textchars = bytearray({7, 8, 9, 10, 12, 13, 27} | set(range(0x20, 0x100)) - {0x7f})
+textchars = bytearray({10, 13} | set(range(0x20, 0x100)) - {0x7f})
 
 """
 todo: find binary segments ...: binary segments separted by at least 10 ascii characters !!!
@@ -226,9 +227,18 @@ def _finalize(recorded, request):
 
     def cleanup(recorded):
         """replace hex object ids in output by 0x?????????"""
-        return re.sub(" 0x[0-9a-f]+",        " 0x?????????", recorded)
+        return re.sub(b" 0x[0-9a-f]+", b" 0x?????????", recorded)
 
+    def resolve_binary_chars(recorded):
+        if IS_PY3:
+            chars = (chr(c) if c in textchars else "0x%02x" % c for c in recorded)
+        else:
+            chars = (c if c in textchars else "0x%02x" % ord(c) for c in recorded)
+        return "".join(chars)
+
+    recorded = recorded.encode("utf-8")
     recorded = cleanup(recorded)
+    recorded = resolve_binary_chars(recorded)
 
     path = _path_to_regest_recording_file(request)
     if reset:
