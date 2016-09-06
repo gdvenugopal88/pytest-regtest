@@ -43,7 +43,7 @@ fixture, which behaves like an output stream::
         # alternative method to record output:
         regtest.write("done")
 
-If you run this test script with *py.test* the first time we have no recorded output for this test
+If you run this test script with *py.test* the first time there is no recorded output for this test
 function so far and thus the test will fail with a message including a diff::
 
     $ py.test
@@ -89,12 +89,6 @@ You can reset recorded output of files and functions individually as::
     $ py.test --regtest-reset tests/test_00.py
     $ py.test --regtest-reset tests/test_00.py::test_squares_up_to_ten
 
-If you want to check that the testing function still produces the same output, you ommit the flag
-and run you tests as usual::
-
-    $ py.test
-
-This shows diffs for the tests failing because the current and recorded output deviate.
 
 To supress the diff and only see the stats use::
 
