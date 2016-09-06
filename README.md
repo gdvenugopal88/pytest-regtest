@@ -7,22 +7,19 @@ software produces correct results, instead a regression test checks if
 software behaves the same way as it did before introduced changes.
 
 More about regression testing at
-<https://en.wikipedia.org/wiki/Regression_testing>
-
-This *pytest*-plugin allows capturing of output of test functions which
-can be compared to the captured output from former runs.
-
-This is a common technique to get started when refactoring legacy code
+<https://en.wikipedia.org/wiki/Regression_testing>. Regression testing
+is a common technique to get started when refactoring legacy code
 lacking a test suite.
+
+*pytest-regtest* allows capturing selected output which then can be
+compared to the captured output from former runs.
 
 To install and activate this plugin execute:
 
     $ pip install pytest-regtest
 
-from your command line.
-
-This *py.test* plugin provides a fixture named *regtest* for recording
-data by writing to this fixture, which behaves like an output stream:
+*pytest-regtest* plugin provides a fixture named *regtest* which can be
+used as a file handle for recording data:
 
     from __future__ import print_function
 
@@ -36,7 +33,7 @@ data by writing to this fixture, which behaves like an output stream:
         # alternative method to record output:
         regtest.write("done")
 
-If you run this test script with *py.test* the first time there is no
+If you run this test script with *pytest* the first time there is no
 recorded output for this test function so far and thus the test will
 fail with a message including a diff:
 
@@ -54,17 +51,18 @@ fail with a message including a diff:
     >       -done
     >       +
 
-For accepting this output, we run *py.test* with the *--reset-regtest*
+For accepting this output, we run *pytest* with the *--reset-regtest*
 flag:
 
     $ py.test --regtest-reset
 
-The recorded output is written to files in the subfolder
-`_regtest_outputs` next to your test script(s).
-
 Now the next execution of *py.test* will succeed:
 
     $ py.test
+
+The recorded output was written to files in the subfolder
+`_regtest_outputs` next to your test script(s). You might keep this
+folder under version control.
 
 Other features
 --------------
@@ -87,7 +85,7 @@ To supress the diff and only see the stats use:
 
     $ py.test --regtest-nodiff
 
-If you want to see the during the test run recorded output use:
+To see recorded output during test execution run:
 
     $ py.test --regtest-tee -s
 
