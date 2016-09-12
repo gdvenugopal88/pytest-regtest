@@ -197,13 +197,15 @@ def pytest_runtest_call(item):
 
 def _handle_regtest_result(fp):
     request = fp.request
-    _finalize(fp.getvalue(), request)
+    extra_id = getattr(fp, "identifier", "")
+    _finalize(fp.getvalue(), request, extra_id)
 
 
 def _handle_regtest_redirect_result(context):
     request = context.request
     fp = context.fp
-    _finalize(fp.getvalue(), request)
+    extra_id = getattr(fp, "identifier", "")
+    _finalize(fp.getvalue(), request, extra_id)
 
 
 """ the function below is from
@@ -217,17 +219,18 @@ def is_binary_string(bytes):
     return bool(bytes.translate(None, textchars))
 
 
-def _finalize(recorded, request):
+def _finalize(recorded, request, extra_id):
 
     def cleanup(recorded):
         """replace hex object ids in output by 0x?????????"""
         return re.sub(" 0x[0-9a-f]+", " 0x?????????", recorded)
 
     recorded = cleanup(recorded)
-    if is_binary_string(recorded):
+    # in python 3 a string should not contain binary symbols...:
+    if not IS_PY3 and is_binary_string(recorded):
         request.raiseerror("recorded output for regression test contains unprintable characters.")
 
-    path = _path_to_regest_recording_file(request)
+    path = _path_to_regest_recording_file(request, extra_id)
     if reset:
         _reset(recorded, path)
     else:
@@ -235,6 +238,7 @@ def _finalize(recorded, request):
         diff = _compare(recorded, tobe)
         if diff is not None:
             msg = "\nRegression test failed"
+            msg +="\n   checked against %s\n" % path
             if not nodiff:
                 msg += "\n\n" + diff
             request.raiseerror(msg)
@@ -246,7 +250,7 @@ def _test_function_identifier(request):
     return "%s::%s" % (path, func_name)
 
 
-def _path_to_regest_recording_file(request):
+def _path_to_regest_recording_file(request, extra_id):
 
     path = request.fspath.strpath
     func_name = request.node.name
@@ -258,6 +262,8 @@ def _path_to_regest_recording_file(request):
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
     id_ = "%s.%s" % (stem, func_name)
+    if extra_id:
+        id_ = id_ + "__" + extra_id
     full_path = os.path.join(target_dir, "%s.out" % (id_))
     return full_path
 
