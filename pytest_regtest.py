@@ -2,6 +2,14 @@
 
 from __future__ import print_function
 
+import sys
+
+import pkg_resources
+_version = pkg_resources.require("pytest-regtest")[0].version.split(".")
+
+__version__ = tuple(map(int, _version))
+
+
 """Regresstion test plugin for pytest.
 
 This plugin enables recording of ouput of testfunctions which can be compared on subsequent
