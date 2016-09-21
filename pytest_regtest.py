@@ -31,8 +31,10 @@ IS_PY3 = sys.version_info.major == 3
 
 if IS_PY3:
     from io import StringIO
+    ljust = lambda s, *a: s.ljust(*a)
 else:
     from cStringIO import StringIO
+    ljust = string.ljust
 
 
 def pytest_addoption(parser):
@@ -115,7 +117,7 @@ def regtest(request):
         tw.line()
         id_ = _test_function_identifier(request)
         line = "REGTEST OUTPUT FROM %s " % id_
-        line = string.ljust(line, tw.fullwidth, "-")
+        line = ljust(line, tw.fullwidth, "-")
         tw.line(line, green=True)
         tw.line()
 
@@ -142,7 +144,7 @@ def regtest_redirect(request):
             tw.line()
             id_ = _test_function_identifier(request)
             line = "REGTEST REDIRECT OUTPUT FROM %s " % id_
-            line = string.ljust(line, tw.fullwidth, "-")
+            line = ljust(line, tw.fullwidth, "-")
             tw.line(line, green=True)
             tw.line()
         try:
