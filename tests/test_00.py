@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 
-def test0(regtest):
+def test0(regtest, tmpdir):
     print("test0")
     print("this is the expected output\t", file=regtest)
 

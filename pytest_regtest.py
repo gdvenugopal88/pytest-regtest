@@ -2,7 +2,6 @@
 
 from __future__ import print_function
 
-import sys
 
 import pkg_resources
 _version = pkg_resources.require("pytest-regtest")[0].version.split(".")
@@ -22,6 +21,7 @@ import os
 import re
 import string
 import sys
+import tempfile
 
 import py
 import pytest
@@ -231,6 +231,15 @@ def is_binary_string(bytes):
 
 def _finalize(recorded, request, extra_id):
 
+    if "tmpdir" in request.fixturenames:
+        tmpdir = request.getfixturevalue("tmpdir").strpath
+        replacement = "<tmpdir_from_fixture>"
+    else:
+        tmpdir = os.path.realpath(tempfile.gettempdir())
+        replacement = "<tmpdir_from_module>"
+
+    recorded = recorded.replace(tmpdir, replacement)
+
     def cleanup(recorded):
         """replace hex object ids in output by 0x?????????"""
         return re.sub(" 0x[0-9a-f]+", " 0x?????????", recorded)
@@ -248,7 +257,7 @@ def _finalize(recorded, request, extra_id):
         diff = _compare(recorded, tobe)
         if diff is not None:
             msg = "\nRegression test failed"
-            msg +="\n   checked against %s\n" % path
+            msg += "\n   checked against %s\n" % path
             if not nodiff:
                 msg += "\n\n" + diff
             request.raiseerror(msg)
