@@ -99,7 +99,7 @@ class Tee(object):
         return getattr(self.string_io, name)
 
 
-@pytest.yield_fixture()
+@pytest.yield_fixture(scope="function")
 def regtest(request):
     """This fixture acts like a writeable stream which can be used to record expected / current
     output depending on the flag --regtest-reset which causes recording of approved output. Without
@@ -125,7 +125,7 @@ def regtest(request):
     yield fp
 
 
-@pytest.yield_fixture()
+@pytest.yield_fixture(scope="function")
 def regtest_redirect(request):
     """regest_redirect is a context manager which records output to sys.stdout as long as active.
     Else it works similar to the regtest fixture.  """
