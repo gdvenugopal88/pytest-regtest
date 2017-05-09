@@ -1,6 +1,6 @@
 from setuptools import setup
 
-VERSION = (0, 15, 0)
+VERSION = (0, 15, 1)
 
 AUTHOR = "Uwe Schmitt"
 AUTHOR_EMAIL = "uwe.schmitt@id.ethz.ch"
@@ -9,7 +9,7 @@ DESCRIPTION = "pytest plugin for regression tests"
 
 LICENSE = "http://opensource.org/licenses/GPL-3.0"
 
-URL = "https://sissource.ethz.ch/uweschmitt/pytest-regtest/tree/master"
+URL = "https://sissource.ethz.ch/sispub/pytest-regtest/tree/master"
 
 LONG_DESCRIPTION = """
 
