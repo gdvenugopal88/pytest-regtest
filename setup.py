@@ -2,7 +2,7 @@ import os
 import sys
 from setuptools import setup
 
-VERSION = (1, 0, 4)
+VERSION = (1, 0, 5)
 
 AUTHOR = "Uwe Schmitt"
 AUTHOR_EMAIL = "uwe.schmitt@id.ethz.ch"
