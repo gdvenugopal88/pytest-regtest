@@ -40,16 +40,17 @@ fail with a message including a diff:
     $ py.test
     ...
 
-    def test_squares_up_to_ten(regtest):
-    E
-    >       Regression test failed
-    >
-    >       --- is
-    >       +++ tobe
-    >       @@ -1,2 +1 @@
-    >       -[0, 1, 4, 9, 16, 25, 36, 49, 64, 81]
-    >       -done
-    >       +
+    regression test output differences for test_demo.py::test_squares_up_to_ten:
+
+    >   --- current
+    >   +++ tobe
+    >   @@ -1,2 +1 @@
+    >   -[0, 1, 4, 9, 16, 25, 36, 49, 64, 81]
+    >   -done
+    >   +
+
+The output tells us what the current output is, and that the "tobe" output
+is still empty.
 
 For accepting this output, we run *pytest* with the *--reset-regtest*
 flag:
@@ -60,9 +61,39 @@ Now the next execution of *py.test* will succeed:
 
     $ py.test
 
+Now we break the test by modifying the code under test to compute the first
+eleven square numbers:
+
+    from __future__ import print_function
+
+    def test_squares_up_to_ten(regtest):
+
+        result = [i*i for i in range(11)]  # changed !
+
+        # one way to record output:
+        print(result, file=regtest)
+
+        # alternative method to record output:
+        regtest.write("done")
+
+The next run of pytest delivers a nice diff of the current and expected output
+from this test function:
+
+    $ py.test
+
+    ...
+    >   --- current
+    >   +++ tobe
+    >   @@ -1,2 +1,2 @@
+    >   -[0, 1, 4, 9, 16, 25, 36, 49, 64, 81, 100]
+    >   +[0, 1, 4, 9, 16, 25, 36, 49, 64, 81]
+    >    done
+
+
 The recorded output was written to files in the subfolder
 `_regtest_outputs` next to your test script(s). You might keep this
 folder under version control.
+
 
 Other features
 --------------
