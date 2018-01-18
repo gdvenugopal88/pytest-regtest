@@ -17,8 +17,9 @@ from _pytest.runner import TerminalRepr
 pytest_plugins = ["pytester"]
 
 
-# _version = pkg_resources.require("pytest-regtest")[0].version.split(".")
-# __version__ = tuple(map(int, _version))
+_version = pkg_resources.require("pytest-regtest")[0].version.split(".")
+__version__ = tuple(map(int, _version))
+del _version
 
 
 IS_PY3 = sys.version_info.major == 3
@@ -127,10 +128,17 @@ class RegTestFixture(object):
         self.nodeid = nodeid
 
     @property
+    def output_file_name(self):
+        specifier = os.path.basename(self.nodeid)
+        file_name, __, test_function = specifier.partition("::")
+        stem, __ = os.path.splitext(file_name)
+        return stem + "." + test_function + ".out"
+
+
+    @property
     def result_file(self):
         folder = os.path.dirname(self.nodeid)
-        test_id = os.path.basename(self.nodeid)
-        return os.path.join(folder, "_regtest_outputs", test_id)
+        return os.path.join(folder, "_regtest_outputs", self.output_file_name)
 
     def write(self, what):
         self.buffer.write(what)

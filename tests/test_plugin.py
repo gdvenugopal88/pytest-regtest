@@ -56,7 +56,7 @@ def test_fixture(testdir):
 
     # check recorded output
     def _read_output(fname):
-        path = testdir.tmpdir.join("_regtest_outputs").join("test_fixture.py::{}".format(fname))
+        path = testdir.tmpdir.join("_regtest_outputs").join("test_fixture.{}.out".format(fname))
         return open(path.strpath).read()
 
     assert _read_output("test_regtest") == ("this is expected outcome\n"
