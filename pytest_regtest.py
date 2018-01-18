@@ -126,13 +126,17 @@ class RegTestFixture(object):
         self.request = request
         self.buffer = StringIO()
         self.nodeid = nodeid
+        self.identifier = None
 
     @property
     def output_file_name(self):
         specifier = os.path.basename(self.nodeid)
         file_name, __, test_function = specifier.partition("::")
         stem, __ = os.path.splitext(file_name)
-        return stem + "." + test_function + ".out"
+        if self.identifier is not None:
+            return stem + "." + test_function + "__" + self.identifier + ".out"
+        else:
+            return stem + "." + test_function + ".out"
 
 
     @property

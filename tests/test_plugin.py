@@ -29,6 +29,7 @@ def test_fixture(testdir):
             assert 1 * 1 == 1
 
         def test_always_ok_regtest(regtest):
+            regtest.identifier = "my_computer"
             assert 1 * 1 == 1
 
     """)
@@ -68,6 +69,9 @@ def test_fixture(testdir):
                                             )
 
     assert _read_output("test_always_fail_regtest") == ""
+
+    # check if regtest.identifier = "my_computer" created the output file:
+    assert _read_output("test_always_ok_regtest__my_computer") == ""
 
     # run again, reg test should succeed now
     result = testdir.runpytest()
