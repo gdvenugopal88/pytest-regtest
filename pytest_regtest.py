@@ -49,7 +49,7 @@ def cleanup(recorded, request):
     def replacements():
 
         if "tmpdir" in request.fixturenames:
-            tmpdir = request.getfixturevalue("tmpdir").join("..").join("..").strpath
+            tmpdir = request.getfixturevalue("tmpdir").strpath
             yield tmpdir, "<tmpdir_from_fixture>"
 
         yield os.path.realpath(tempfile.gettempdir()), "<tmpdir_from_tempfile_module>"

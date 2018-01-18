@@ -15,7 +15,7 @@ def test_fixture(testdir):
         def test_regtest(regtest, tmpdir):
 
             print("this is expected outcome", file=regtest)
-            print(tmpdir.strpath, file=regtest)
+            print(tmpdir.join("test").strpath, file=regtest)
             print(tempfile.gettempdir(), file=regtest)
             print("obj id is", hex(id(here)), file=regtest)
 
@@ -39,12 +39,14 @@ def test_fixture(testdir):
     result.stdout.fnmatch_lines([
         "regression test output differences for test_fixture.py::test_regtest:"])
 
+    print(result.stdout.str())
+
     expected_diff = """
                     >   --- current
                     >   +++ tobe
                     >   @@ -1,5 +1 @@
                     >   -this is expected outcome
-                    >   -<tmpdir_from_fixture>/basetemp/test_regtest0
+                    >   -<tmpdir_from_fixture>/test
                     >   -<tmpdir_from_tempfile_module>
                     >   -obj id is 0x?????????
                     """.strip().split("\n")
@@ -60,7 +62,7 @@ def test_fixture(testdir):
         return open(path.strpath).read()
 
     assert _read_output("test_regtest") == ("this is expected outcome\n"
-                                            "<tmpdir_from_fixture>/basetemp/test_regtest0\n"
+                                            "<tmpdir_from_fixture>/test\n"
                                             "<tmpdir_from_tempfile_module>\n"
                                             "obj id is 0x?????????\n"
                                             )
