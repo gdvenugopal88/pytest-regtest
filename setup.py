@@ -16,8 +16,15 @@ URL = "https://sissource.ethz.ch/sispub/pytest-regtest/tree/master"
 
 if len(sys.argv) > 1 and "dist" in sys.argv[1]:
 
+    assert sys.version_info.major == 3, "pleas use python 3 to build package"
+    from subprocess import check_output
+
     here = os.path.dirname(os.path.abspath(__file__))
-    LONG_DESCRIPTION = "\n" + open(os.path.join("README.md")).read()
+    rst_content = check_output("pandoc {} -t rst".format(os.path.join(here, "README.md")),
+                               shell=True)
+
+    LONG_DESCRIPTION = str(rst_content, encoding="ascii")
+
 
 else:
     LONG_DESCRIPTION = ""
