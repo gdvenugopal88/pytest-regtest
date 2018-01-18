@@ -5,5 +5,4 @@ tests:
     script:
         - pyenv local $(latest_python 2.7) $(latest_python 3.6)
         - tox -r -vv
-    stage:
-        - tests
+    stage: tests
