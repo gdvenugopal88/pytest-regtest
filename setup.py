@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import os
 import sys
 from setuptools import setup
@@ -13,21 +15,23 @@ LICENSE = "http://opensource.org/licenses/GPL-3.0"
 
 URL = "https://sissource.ethz.ch/sispub/pytest-regtest/tree/master"
 
+LONG_DESCRIPTION = ""
 
-if len(sys.argv) > 1 and "dist" in sys.argv[1]:
+if len(sys.argv) > 1 and "dist" in sys.argv[1] and "wheel" not in sys.argv[1]:
 
-    assert sys.version_info.major == 3, "pleas use python 3 to build package"
+    assert sys.version_info.major == 3, "please use python 3 to build package"
     from subprocess import check_output
 
     here = os.path.dirname(os.path.abspath(__file__))
-    rst_content = check_output("pandoc {} -t rst".format(os.path.join(here, "README.md")),
-                               shell=True)
+    try:
+        rst_content = check_output("pandoc {} -t rst".format(os.path.join(here, "README.md")),
+                                shell=True)
 
-    LONG_DESCRIPTION = str(rst_content, encoding="ascii")
+        LONG_DESCRIPTION = str(rst_content, encoding="ascii")
 
+    except:
+        pass
 
-else:
-    LONG_DESCRIPTION = ""
 
 if __name__ == "__main__":
 
