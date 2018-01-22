@@ -68,8 +68,6 @@ def test_fixture(testdir):
                                             "obj id is 0x?????????\n"
                                             )
 
-    assert _read_output("test_always_fail_regtest") == ""
-
     # check if regtest.identifier = "my_computer" created the output file:
     assert _read_output("test_always_ok_regtest__my_computer") == ""
 
