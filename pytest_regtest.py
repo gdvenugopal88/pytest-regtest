@@ -11,7 +11,8 @@ import pkg_resources
 
 import py
 import pytest
-from _pytest.runner import TerminalRepr
+from _pytest._code.code import TerminalRepr, ExceptionInfo
+from _pytest.outcomes import skip
 
 
 pytest_plugins = ["pytester"]
@@ -171,10 +172,32 @@ def regtest(request):
 
     yield RegTestFixture(request, item.nodeid)
 
+
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
+
     outcome = yield
-    if call.when == "call":
+    excinfo = call.excinfo
+
+    if excinfo:
+        if not isinstance(excinfo, ExceptionInfo):
+            _outcome = "failed"
+            longrepr = excinfo
+        elif excinfo.errisinstance(skip.Exception):
+            _outcome = "skipped"
+            r = excinfo._getreprcrash()
+            longrepr = (str(r.path), r.lineno, r.message)
+        else:
+            _outcome = "failed"
+            if call.when == "call":
+                longrepr = item.repr_failure(excinfo)
+            else:  # exception in setup or teardown
+                longrepr = item._repr_failure_py(excinfo,
+                                                 style=item.config.option.tbstyle)
+        outcome.result.longrepr = longrepr
+        outcome.result.outcome = _outcome
+
+    elif call.when == "call":
         regtest = item.funcargs.get("regtest")
         if regtest is not None:
             handle_regtest_result(regtest, outcome)
