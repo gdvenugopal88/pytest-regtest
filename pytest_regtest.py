@@ -177,7 +177,15 @@ def regtest(request):
 def pytest_runtest_makereport(item, call):
 
     outcome = yield
+
     excinfo = call.excinfo
+    when = call.when
+    duration = call.stop - call.start
+    keywords = dict([(x, 1) for x in item.keywords])
+
+    outcome.result.when = when
+    outcome.result.duration = duration
+    outcome.result.keywords = keywords
 
     if excinfo:
         if not isinstance(excinfo, ExceptionInfo):
@@ -188,7 +196,7 @@ def pytest_runtest_makereport(item, call):
             r = excinfo._getreprcrash()
             longrepr = (str(r.path), r.lineno, r.message)
         else:
-            _outcome = "failed"
+            _outcome = outcome.result.outcome
             if call.when == "call":
                 longrepr = item.repr_failure(excinfo)
             else:  # exception in setup or teardown
@@ -197,13 +205,14 @@ def pytest_runtest_makereport(item, call):
         outcome.result.longrepr = longrepr
         outcome.result.outcome = _outcome
 
-    elif call.when == "call":
+    if call.when == "call":
         regtest = item.funcargs.get("regtest")
+        xfail = item.get_marker("xfail") is not None
         if regtest is not None:
-            handle_regtest_result(regtest, outcome)
+            handle_regtest_result(regtest, outcome, xfail)
 
 
-def handle_regtest_result(regtest, outcome):
+def handle_regtest_result(regtest, outcome, xfail):
 
     if Config.tee:
         tw.line()
@@ -224,7 +233,10 @@ def handle_regtest_result(regtest, outcome):
 
         if current != tobe:
 
-            outcome.result.outcome = "failed"
+            if xfail:
+                outcome.result.outcome = "skipped"
+            else:
+                outcome.result.outcome = "failed"
 
             if Config.nodiff:
                 outcome.result.longrepr = CollectErrorRepr(["regression test for {} failed\n".
