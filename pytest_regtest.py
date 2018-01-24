@@ -56,10 +56,12 @@ def cleanup(recorded, request):
             yield tmpdir, "<tmpdir_from_fixture>"
 
         yield os.path.realpath(tempfile.gettempdir()), "<tmpdir_from_tempfile_module>"
-        yield tempfile.gettempdir(), "<tmpdir_from_tempfile_module>"
+        regexp = tempfile.gettempdir() + "/tmp[_a-z0-9]+"
+        yield regexp, "<tmpdir_from_tempfile_module>"
+        yield tempfile.gettempdir(), "<tempfile_module_root>"
 
-    for tmpdir, replacement in replacements():
-        recorded = recorded.replace(tmpdir, replacement)
+    for regex, replacement in replacements():
+        recorded, __ = re.subn(regex, replacement, recorded) # [0]trecorded.replace(tmpdir, replacement)
 
     def cleanup_hex(recorded):
         """replace hex object ids in output by 0x?????????"""

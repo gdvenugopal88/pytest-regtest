@@ -19,6 +19,7 @@ def test_fixture(testdir):
             print("this is expected outcome", file=regtest)
             print(tmpdir.join("test").strpath, file=regtest)
             print(tempfile.gettempdir(), file=regtest)
+            print(tempfile.mkdtemp(), file=regtest)
             print("obj id is", hex(id(here)), file=regtest)
 
         def test_always_fail():
@@ -57,9 +58,10 @@ def test_fixture(testdir):
     expected_diff = """
                     >   --- current
                     >   +++ tobe
-                    >   @@ -1,5 +1 @@
+                    >   @@ -1,6 +1 @@
                     >   -this is expected outcome
                     >   -<tmpdir_from_fixture>/test
+                    >   -<tempfile_module_root>
                     >   -<tmpdir_from_tempfile_module>
                     >   -obj id is 0x?????????
                     """.strip().split("\n")
@@ -83,6 +85,7 @@ def test_fixture(testdir):
 
     assert _read_output("test_regtest") == ("this is expected outcome\n"
                                             "<tmpdir_from_fixture>/test\n"
+                                            "<tempfile_module_root>\n"
                                             "<tmpdir_from_tempfile_module>\n"
                                             "obj id is 0x?????????\n"
                                             )
