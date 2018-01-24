@@ -28,6 +28,8 @@ IS_PY3 = sys.version_info.major == 3
 if IS_PY3:
     from io import StringIO
     ljust = lambda s, *a: s.ljust(*a)
+    import functools
+    open = functools.partial(open, encoding="utf-8")
 else:
     from string import ljust
     from cStringIO import StringIO
@@ -111,7 +113,6 @@ class Config:
 
 
 def pytest_configure(config):
-    global tee, ignore_line_endings, reset, nodiff
     Config.tee = config.getvalue("--regtest-tee")
     Config.ignore_line_endings = not config.getvalue("--regtest-regard-line-endings")
     Config.reset = config.getvalue("--regtest-reset")
