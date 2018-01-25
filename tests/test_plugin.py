@@ -61,7 +61,7 @@ def test_fixture(testdir):
                     >   @@ -1,6 +1 @@
                     >   -this is expected outcome
                     >   -<tmpdir_from_fixture>/test
-                    >   -<tempfile_module_root>
+                    >   -<tmpdir_from_tempfile_module>
                     >   -<tmpdir_from_tempfile_module>
                     >   -obj id is 0x?????????
                     """.strip().split("\n")
@@ -85,7 +85,7 @@ def test_fixture(testdir):
 
     assert _read_output("test_regtest") == ("this is expected outcome\n"
                                             "<tmpdir_from_fixture>/test\n"
-                                            "<tempfile_module_root>\n"
+                                            "<tmpdir_from_tempfile_module>\n"
                                             "<tmpdir_from_tempfile_module>\n"
                                             "obj id is 0x?????????\n"
                                             )

@@ -55,10 +55,10 @@ def cleanup(recorded, request):
             tmpdir = request.getfixturevalue("tmpdir").strpath
             yield tmpdir, "<tmpdir_from_fixture>"
 
-        yield os.path.realpath(tempfile.gettempdir()), "<tmpdir_from_tempfile_module>"
-        regexp = tempfile.gettempdir() + "/tmp[_a-z0-9]+"
+        regexp = tempfile.gettempdir() + "/tmp[_a-zA-Z0-9]+"
         yield regexp, "<tmpdir_from_tempfile_module>"
-        yield tempfile.gettempdir(), "<tempfile_module_root>"
+        yield os.path.realpath(tempfile.gettempdir()), "<tmpdir_from_tempfile_module>"
+        yield tempfile.tempdir, "<tmpdir_from_tempfile_module>"
 
     for regex, replacement in replacements():
         recorded, __ = re.subn(regex, replacement, recorded) # [0]trecorded.replace(tmpdir, replacement)
