@@ -190,6 +190,8 @@ def pytest_runtest_makereport(item, call):
     outcome.result.duration = duration
     outcome.result.keywords = keywords
 
+    xfail = item.get_marker("xfail") is not None
+
     if excinfo:
         if not isinstance(excinfo, ExceptionInfo):
             _outcome = "failed"
@@ -199,7 +201,7 @@ def pytest_runtest_makereport(item, call):
             r = excinfo._getreprcrash()
             longrepr = (str(r.path), r.lineno, r.message)
         else:
-            _outcome = outcome.result.outcome
+            _outcome = "failed" if not xfail else "skipped"
             if call.when == "call":
                 longrepr = item.repr_failure(excinfo)
             else:  # exception in setup or teardown
@@ -208,11 +210,15 @@ def pytest_runtest_makereport(item, call):
         outcome.result.longrepr = longrepr
         outcome.result.outcome = _outcome
 
-    if call.when == "call":
-        regtest = item.funcargs.get("regtest")
-        xfail = item.get_marker("xfail") is not None
-        if regtest is not None:
-            handle_regtest_result(regtest, outcome, xfail)
+    else:
+        outcome.result.outcome = "passed"
+        outcome.result.longrepr = None
+
+        if call.when == "call":
+            regtest = item.funcargs.get("regtest")
+            xfail = item.get_marker("xfail") is not None
+            if regtest is not None:
+                handle_regtest_result(regtest, outcome, xfail)
 
 
 def handle_regtest_result(regtest, outcome, xfail):

@@ -9,6 +9,7 @@ def test_fixture(testdir):
 
         import os
         import tempfile
+        import time
 
         import pytest
 
@@ -26,6 +27,7 @@ def test_fixture(testdir):
             assert 1 * 1 == 2
 
         def test_always_fail_regtest(regtest):
+            regtest.write(str(time.time()))
             assert 1 * 1 == 2
 
         def test_always_ok():
@@ -53,7 +55,7 @@ def test_fixture(testdir):
         "*3 failed, 2 passed, 2 xfailed*",
         ])
 
-    # print(result.stdout.str())
+    print(result.stdout.str())
 
     expected_diff = """
                     >   --- current
@@ -68,6 +70,7 @@ def test_fixture(testdir):
 
     result.stdout.fnmatch_lines([l.lstrip() for l in expected_diff])
     result.stdout.fnmatch_lines([
+        "regression test output differences for test_fixture.py::test_always_fail_regtest",
         "*3 failed, 2 passed, 2 xfailed*",
         ])
 
