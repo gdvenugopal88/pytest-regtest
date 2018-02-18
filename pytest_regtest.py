@@ -219,9 +219,9 @@ def pytest_runtest_makereport(item, call):
         outcome.result.longrepr = None
 
         if call.when == "call":
-            regtest = item.funcargs.get("regtest")
-            xfail = item.get_marker("xfail") is not None
+            regtest = getattr(item, "funcargs", {}).get("regtest")
             if regtest is not None:
+                xfail = item.get_marker("xfail") is not None
                 handle_regtest_result(regtest, outcome, xfail)
 
 
