@@ -2,6 +2,7 @@
 from __future__ import print_function, division, absolute_import
 
 import difflib
+import functools
 import os
 import re
 import sys
@@ -26,14 +27,15 @@ del _version
 IS_PY3 = sys.version_info.major == 3
 
 if IS_PY3:
-    from io import StringIO
-    ljust = lambda s, *a: s.ljust(*a)
-    import functools
     open = functools.partial(open, encoding="utf-8")
-else:
-    from string import ljust
-    from cStringIO import StringIO
+    from io import StringIO
 
+    def ljust(s, *a):
+        return s.ljust(*a)
+
+else:
+    from cStringIO import StringIO
+    from string import ljust
 
 
 """ the function below is from
@@ -61,7 +63,7 @@ def cleanup(recorded, request):
         yield tempfile.tempdir, "<tmpdir_from_tempfile_module>"
 
     for regex, replacement in replacements():
-        recorded, __ = re.subn(regex, replacement, recorded) # [0]trecorded.replace(tmpdir, replacement)
+        recorded, __ = re.subn(regex, replacement, recorded)
 
     def cleanup_hex(recorded):
         """replace hex object ids in output by 0x?????????"""
@@ -141,7 +143,6 @@ class RegTestFixture(object):
             return stem + "." + test_function + "__" + self.identifier + ".out"
         else:
             return stem + "." + test_function + ".out"
-
 
     @property
     def result_file(self):
@@ -250,7 +251,7 @@ def handle_regtest_result(regtest, outcome, xfail):
             if Config.nodiff:
                 outcome.result.longrepr = CollectErrorRepr(["regression test for {} failed\n".
                                                             format(regtest.nodeid)],
-                                                            [dict(red=True, bold=True)])
+                                                           [dict(red=True, bold=True)])
                 return
 
             if not Config.ignore_line_endings:
