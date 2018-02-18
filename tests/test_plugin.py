@@ -70,7 +70,6 @@ def test_fixture(testdir):
 
     result.stdout.fnmatch_lines([l.lstrip() for l in expected_diff])
     result.stdout.fnmatch_lines([
-        "regression test output differences for test_fixture.py::test_always_fail_regtest",
         "*3 failed, 2 passed, 2 xfailed*",
         ])
 
