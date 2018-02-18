@@ -152,6 +152,9 @@ class RegTestFixture(object):
     def write(self, what):
         self.buffer.write(what)
 
+    def flush(self):
+        pass
+
     @property
     def tobe(self):
         if os.path.exists(self.result_file):
