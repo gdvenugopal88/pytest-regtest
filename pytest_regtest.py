@@ -130,8 +130,10 @@ class RegTestFixture(object):
 
     def __init__(self, request, nodeid):
         self.request = request
-        self.buffer = StringIO()
         self.nodeid = nodeid
+
+        self.test_folder = request.fspath.dirname
+        self.buffer = StringIO()
         self.identifier = None
 
     @property
@@ -146,8 +148,7 @@ class RegTestFixture(object):
 
     @property
     def result_file(self):
-        folder = os.path.dirname(self.nodeid)
-        return os.path.join(folder, "_regtest_outputs", self.output_file_name)
+        return os.path.join(self.test_folder, "_regtest_outputs", self.output_file_name)
 
     def write(self, what):
         self.buffer.write(what)
