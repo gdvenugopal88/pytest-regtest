@@ -49,6 +49,20 @@ def is_binary_string(bytes):
     return bool(bytes.translate(None, textchars))
 
 
+_converters_pre = []
+_converters_post = []
+
+
+def register_converter_pre(function):
+    if function not in _converters_pre:
+        _converters_pre.append(function)
+
+
+def register_converter_post(function):
+    if function not in _converters_post:
+        _converters_post.append(function)
+
+
 def cleanup(recorded, request):
 
     def replacements():
@@ -62,6 +76,9 @@ def cleanup(recorded, request):
         yield os.path.realpath(tempfile.gettempdir()), "<tmpdir_from_tempfile_module>"
         yield tempfile.tempdir, "<tmpdir_from_tempfile_module>"
 
+    for converter in _converters_pre:
+        recorded = converter(recorded)
+
     for regex, replacement in replacements():
         recorded, __ = re.subn(regex, replacement, recorded)
 
@@ -70,6 +87,10 @@ def cleanup(recorded, request):
         return re.sub(" 0x[0-9a-f]+", " 0x?????????", recorded)
 
     recorded = cleanup_hex(recorded)
+
+    for converter in _converters_post:
+        recorded = converter(recorded)
+
     # in python 3 a string should not contain binary symbols...:
     if not IS_PY3 and is_binary_string(recorded):
         request.raiseerror("recorded output for regression test contains unprintable characters.")

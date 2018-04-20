@@ -125,3 +125,41 @@ spaces at the end of the lines when comparing output. This can be
 achieved by specifying:
 
     $ py.test --regtest-ignore-line-endings
+
+
+Fixing unavoidable changes in recorded  output
+----------------------------------------------
+
+The recorded output can contain data which is changing from test run to test
+run, e.g. pathes created with the `tmpdir` fixture or hexadecimal object ids,
+when objects are printed.
+
+The plugin already replaces such changing data in the recorded output,
+and one can register own converters in `conftest.py` in the tests
+folder. For example:
+
+    import pytest_regtest
+
+    @pytest_regtest.register_converter_pre
+    def fix_before(txt):
+        """modify recorded output before the default fixes
+        like temp folders or hex object ids are applied"""
+
+        # remove lines with passwords:
+        lines = txt.split('\n')
+        lines = [l for l in lines if "password is" not in l]
+        return '\n'.join(lines)
+
+    @pytest_regtest.register_converter_post
+    def after(txt):
+        """modify recorded output after the default fixes
+        like temp folders or hex object ids are applied"""
+
+        # for demo only
+        return txt.upper()
+
+This can be used to fix substrings like "computation need 1.23 seconds"
+to "computation needed <TIME> seconds" etc.
+
+One can register multiple such converters which will be applied in
+order of registration.

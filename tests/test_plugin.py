@@ -61,11 +61,11 @@ def test_fixture(testdir):
                     >   --- current
                     >   +++ tobe
                     >   @@ -1,6 +1 @@
-                    >   -this is expected outcome
-                    >   -<tmpdir_from_fixture>/test
-                    >   -<tmpdir_from_tempfile_module>
-                    >   -<tmpdir_from_tempfile_module>
-                    >   -obj id is 0x?????????
+                    >   -THIS IS EXPECTED OUTCOME
+                    >   -<TMPDIR_FROM_FIXTURE>/TEST
+                    >   -<TMPDIR_FROM_TEMPFILE_MODULE>
+                    >   -<TMPDIR_FROM_TEMPFILE_MODULE>
+                    >   -OBJ ID IS 0X?????????
                     """.strip().split("\n")
 
     result.stdout.fnmatch_lines([l.lstrip() for l in expected_diff])
@@ -85,11 +85,11 @@ def test_fixture(testdir):
         path = testdir.tmpdir.join("_regtest_outputs").join("test_fixture.{}.out".format(fname))
         return open(path.strpath).read()
 
-    assert _read_output("test_regtest") == ("this is expected outcome\n"
-                                            "<tmpdir_from_fixture>/test\n"
-                                            "<tmpdir_from_tempfile_module>\n"
-                                            "<tmpdir_from_tempfile_module>\n"
-                                            "obj id is 0x?????????\n"
+    assert _read_output("test_regtest") == ("THIS IS EXPECTED OUTCOME\n"
+                                            "<TMPDIR_FROM_FIXTURE>/TEST\n"
+                                            "<TMPDIR_FROM_TEMPFILE_MODULE>\n"
+                                            "<TMPDIR_FROM_TEMPFILE_MODULE>\n"
+                                            "OBJ ID IS 0X?????????\n"
                                             )
 
     # check if regtest.identifier = "my_computer" created the output file:
