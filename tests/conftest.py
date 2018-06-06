@@ -3,14 +3,14 @@
 from __future__ import print_function, division, absolute_import
 
 
-import pytest_regtest
+from pytest_regtest import register_converter_pre, register_converter_post
 
 
-@pytest_regtest.register_converter_pre
+@register_converter_pre
 def result(txt):
     return txt
 
 
-@pytest_regtest.register_converter_post
+@register_converter_post
 def result(txt):
     return txt.upper()
