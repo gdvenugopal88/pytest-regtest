@@ -273,9 +273,11 @@ def handle_regtest_result(regtest, outcome, xfail):
             else:
                 outcome.result.outcome = "failed"
 
+            nodeid = regtest.nodeid + ("" if regtest.identifier is None 
+                                          else "__" + regtest.identifier)
             if Config.nodiff:
                 outcome.result.longrepr = CollectErrorRepr(["regression test for {} failed\n".
-                                                            format(regtest.nodeid)],
+                                                            format(nodeid)],
                                                            [dict(red=True, bold=True)])
                 return
 
@@ -285,7 +287,7 @@ def handle_regtest_result(regtest, outcome, xfail):
                 tobe = map(repr, tobe)
             collected = list(difflib.unified_diff(current, tobe, "current", "tobe", lineterm=""))
 
-            msg = "\nregression test output differences for {}:\n".format(regtest.nodeid)
+            msg = "\nregression test output differences for {}:\n".format(nodeid)
             msg_diff = ">   " + "\n>   ".join(collected)
             outcome.result.longrepr = CollectErrorRepr([msg, msg_diff + "\n"],
                                                        [dict(), dict(red=True, bold=True)])
