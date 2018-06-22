@@ -159,8 +159,9 @@ class RegTestFixture(object):
 
     @property
     def output_file_name(self):
-        specifier = os.path.basename(self.nodeid)
-        file_name, __, test_function = specifier.partition("::")
+        file_name, __, test_function = self.nodeid.partition("::")
+        file_name = os.path.basename(file_name)
+        test_function = test_function.replace("/", "--")
         stem, __ = os.path.splitext(file_name)
         if self.identifier is not None:
             return stem + "." + test_function + "__" + self.identifier + ".out"

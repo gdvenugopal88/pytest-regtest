@@ -45,14 +45,19 @@ def test_fixture(testdir):
             regtest.identifier = "my_computer"
             assert 1 * 1 == 1
 
+        @pytest.mark.parametrize("a, b, c", [(1, 2, 3), ("a", "b", "ab")])
+        def test_with_paramertrization(a, b, c, regtest):
+            print(a, b, c, file=regtest)
+            assert a + b == c
+
     """)
 
     # will fully fail
     result = testdir.runpytest()
-    result.assert_outcomes(failed=3, passed=2)
+    result.assert_outcomes(failed=5, passed=2)
     result.stdout.fnmatch_lines([
         "regression test output differences for test_fixture.py::test_regtest:",
-        "*3 failed, 2 passed, 2 xfailed*",
+        "*5 failed, 2 passed, 2 xfailed*",
         ])
 
     print(result.stdout.str())
@@ -70,19 +75,20 @@ def test_fixture(testdir):
 
     result.stdout.fnmatch_lines([l.lstrip() for l in expected_diff])
     result.stdout.fnmatch_lines([
-        "*3 failed, 2 passed, 2 xfailed*",
+        "*5 failed, 2 passed, 2 xfailed*",
         ])
 
     # reset
     result = testdir.runpytest("--regtest-reset", "-v")
-    result.assert_outcomes(failed=2, passed=3)
+    result.assert_outcomes(failed=2, passed=5)
     result.stdout.fnmatch_lines([
-        "*2 failed, 3 passed, 2 xfailed*",
+        "*2 failed, 5 passed, 2 xfailed*",
         ])
 
     # check recorded output
+    output_root = testdir.tmpdir.join("_regtest_outputs")
     def _read_output(fname):
-        path = testdir.tmpdir.join("_regtest_outputs").join("test_fixture.{}.out".format(fname))
+        path = output_root.join("test_fixture.{}.out".format(fname))
         return open(path.strpath).read()
 
     assert _read_output("test_regtest") == ("THIS IS EXPECTED OUTCOME\n"
@@ -92,20 +98,26 @@ def test_fixture(testdir):
                                             "OBJ ID IS 0X?????????\n"
                                             )
 
+    reg_test_files = [f.basename for f in output_root.listdir()]
+    assert sorted(reg_test_files) ==  ['test_fixture.test_always_ok_regtest__my_computer.out',
+                                       'test_fixture.test_regtest.out',
+                                       'test_fixture.test_with_paramertrization[1-2-3].out',
+                                       'test_fixture.test_with_paramertrization[a-b-ab].out']
+
     # check if regtest.identifier = "my_computer" created the output file:
     assert _read_output("test_always_ok_regtest__my_computer") == ""
 
     # run again, reg test should succeed now
     result = testdir.runpytest()
-    result.assert_outcomes(failed=2, passed=3)
+    result.assert_outcomes(failed=2, passed=5)
     result.stdout.fnmatch_lines([
-        "*2 failed, 3 passed, 2 xfailed*",
+        "*2 failed, 5 passed, 2 xfailed*",
         ])
 
     # just check if cmd line flags work without throwing exceptions:
     result = testdir.runpytest("--regtest-regard-line-endings")
-    result.assert_outcomes(failed=2, passed=3)
+    result.assert_outcomes(failed=2, passed=5)
 
     # just check if cmd line flags work without throwing exceptions:
     result = testdir.runpytest("--regtest-tee")
-    result.assert_outcomes(failed=2, passed=3)
+    result.assert_outcomes(failed=2, passed=5)
