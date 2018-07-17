@@ -75,12 +75,17 @@ def cleanup(recorded, request):
         yield regexp, "<tmpdir_from_tempfile_module>"
         yield os.path.realpath(tempfile.gettempdir()), "<tmpdir_from_tempfile_module>"
         yield tempfile.tempdir, "<tmpdir_from_tempfile_module>"
+        yield r"var/folders/.*/pytest-of.*/","<pytest_tempdir>/"
 
     for converter in _converters_pre:
         recorded = converter(recorded)
 
-    for regex, replacement in replacements():
-        recorded, __ = re.subn(regex, replacement, recorded)
+    fixed = []
+    for line in recorded.split("\n"):
+        for regex, replacement in replacements():
+            line, __ = re.subn(regex, replacement, line)
+        fixed.append(line)
+    recorded = "\n".join(fixed)
 
     def cleanup_hex(recorded):
         """replace hex object ids in output by 0x?????????"""
