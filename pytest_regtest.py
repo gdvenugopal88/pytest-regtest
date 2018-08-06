@@ -1,5 +1,5 @@
 # encoding: utf-8
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function
 
 import difflib
 import functools
@@ -9,12 +9,10 @@ import sys
 import tempfile
 
 import pkg_resources
-
 import py
 import pytest
-from _pytest._code.code import TerminalRepr, ExceptionInfo
+from _pytest._code.code import ExceptionInfo, TerminalRepr
 from _pytest.outcomes import skip
-
 
 pytest_plugins = ["pytester"]
 
@@ -32,6 +30,7 @@ if IS_PY3:
 
     def ljust(s, *a):
         return s.ljust(*a)
+
 
 else:
     from cStringIO import StringIO
@@ -63,48 +62,63 @@ def register_converter_post(function):
         _converters_post.append(function)
 
 
-def cleanup(recorded, request):
+def _std_replacements(request):
 
-    def replacements():
+    if "tmpdir" in request.fixturenames:
+        tmpdir = request.getfixturevalue("tmpdir").strpath
+        yield tmpdir, "<tmpdir_from_fixture>"
 
-        if "tmpdir" in request.fixturenames:
-            tmpdir = request.getfixturevalue("tmpdir").strpath
-            yield tmpdir, "<tmpdir_from_fixture>"
+    regexp = tempfile.gettempdir() + "/tmp[_a-zA-Z0-9]+"
+    yield regexp, "<tmpdir_from_tempfile_module>"
+    yield os.path.realpath(tempfile.gettempdir()), "<tmpdir_from_tempfile_module>"
+    yield tempfile.tempdir, "<tmpdir_from_tempfile_module>"
+    yield r"var/folders/.*/pytest-of.*/", "<pytest_tempdir>/"
 
-        regexp = tempfile.gettempdir() + "/tmp[_a-zA-Z0-9]+"
-        yield regexp, "<tmpdir_from_tempfile_module>"
-        yield os.path.realpath(tempfile.gettempdir()), "<tmpdir_from_tempfile_module>"
-        yield tempfile.tempdir, "<tmpdir_from_tempfile_module>"
-        yield r"var/folders/.*/pytest-of.*/","<pytest_tempdir>/"
+    # replace hex object ids in output by 0x?????????
+    yield r" 0x[0-9a-f]+", " 0x?????????"
 
-    for converter in _converters_pre:
-        recorded = converter(recorded)
+
+def _std_conversion(recorded, request):
 
     fixed = []
     for line in recorded.split("\n"):
-        for regex, replacement in replacements():
+        for regex, replacement in _std_replacements(request):
             line, __ = re.subn(regex, replacement, line)
         fixed.append(line)
     recorded = "\n".join(fixed)
 
-    def cleanup_hex(recorded):
-        """replace hex object ids in output by 0x?????????"""
-        return re.sub(" 0x[0-9a-f]+", " 0x?????????", recorded)
+    # recorded = cleanup_hex(recorded)
+    return recorded
 
-    recorded = cleanup_hex(recorded)
+
+def _call_converter(converter, recorded, request):
+    if converter.__code__.co_argcount == 2:
+        # new api for converters
+        return converter(recorded, request)
+    # old api for converters
+    return converter(recorded)
+
+
+def cleanup(recorded, request):
+
+    for converter in _converters_pre:
+        recorded = _call_converter(converter, recorded, request)
+
+    recorded = _std_conversion(recorded, request)
 
     for converter in _converters_post:
-        recorded = converter(recorded)
+        recorded = _call_converter(converter, recorded, request)
 
     # in python 3 a string should not contain binary symbols...:
     if not IS_PY3 and is_binary_string(recorded):
-        request.raiseerror("recorded output for regression test contains unprintable characters.")
+        request.raiseerror(
+            "recorded output for regression test contains unprintable characters."
+        )
 
     return recorded
 
 
 class CollectErrorRepr(TerminalRepr):
-
     def __init__(self, messages, colors):
         self.messages = messages
         self.colors = colors
@@ -116,22 +130,30 @@ class CollectErrorRepr(TerminalRepr):
 
 def pytest_addoption(parser):
     """Add options to control the timeout plugin"""
-    group = parser.getgroup('regtest', 'regression test plugin')
-    group.addoption('--regtest-reset',
-                    action="store_true",
-                    help="do not run regtest but record current output")
-    group.addoption('--regtest-tee',
-                    action="store_true",
-                    default=False,
-                    help="print recorded results to console too")
-    group.addoption('--regtest-regard-line-endings',
-                    action="store_true",
-                    default=False,
-                    help="do not strip whitespaces at end of recorded lines")
-    group.addoption('--regtest-nodiff',
-                    action="store_true",
-                    default=False,
-                    help="do not show diff output for failed regresson tests")
+    group = parser.getgroup("regtest", "regression test plugin")
+    group.addoption(
+        "--regtest-reset",
+        action="store_true",
+        help="do not run regtest but record current output",
+    )
+    group.addoption(
+        "--regtest-tee",
+        action="store_true",
+        default=False,
+        help="print recorded results to console too",
+    )
+    group.addoption(
+        "--regtest-regard-line-endings",
+        action="store_true",
+        default=False,
+        help="do not strip whitespaces at end of recorded lines",
+    )
+    group.addoption(
+        "--regtest-nodiff",
+        action="store_true",
+        default=False,
+        help="do not show diff output for failed regresson tests",
+    )
 
 
 class Config:
@@ -153,7 +175,6 @@ tw = py.io.TerminalWriter()
 
 
 class RegTestFixture(object):
-
     def __init__(self, request, nodeid):
         self.request = request
         self.nodeid = nodeid
@@ -237,8 +258,9 @@ def pytest_runtest_makereport(item, call):
             if call.when == "call":
                 longrepr = item.repr_failure(excinfo)
             else:  # exception in setup or teardown
-                longrepr = item._repr_failure_py(excinfo,
-                                                 style=item.config.option.tbstyle)
+                longrepr = item._repr_failure_py(
+                    excinfo, style=item.config.option.tbstyle
+                )
         outcome.result.longrepr = longrepr
         outcome.result.outcome = _outcome
 
@@ -279,24 +301,29 @@ def handle_regtest_result(regtest, outcome, xfail):
             else:
                 outcome.result.outcome = "failed"
 
-            nodeid = regtest.nodeid + ("" if regtest.identifier is None 
-                                          else "__" + regtest.identifier)
+            nodeid = regtest.nodeid + (
+                "" if regtest.identifier is None else "__" + regtest.identifier
+            )
             if Config.nodiff:
-                outcome.result.longrepr = CollectErrorRepr(["regression test for {} failed\n".
-                                                            format(nodeid)],
-                                                           [dict(red=True, bold=True)])
+                outcome.result.longrepr = CollectErrorRepr(
+                    ["regression test for {} failed\n".format(nodeid)],
+                    [dict(red=True, bold=True)],
+                )
                 return
 
             if not Config.ignore_line_endings:
                 # add quotes around lines in diff:
                 current = map(repr, current)
                 tobe = map(repr, tobe)
-            collected = list(difflib.unified_diff(current, tobe, "current", "tobe", lineterm=""))
+            collected = list(
+                difflib.unified_diff(current, tobe, "current", "tobe", lineterm="")
+            )
 
             msg = "\nregression test output differences for {}:\n".format(nodeid)
             msg_diff = ">   " + "\n>   ".join(collected)
-            outcome.result.longrepr = CollectErrorRepr([msg, msg_diff + "\n"],
-                                                       [dict(), dict(red=True, bold=True)])
+            outcome.result.longrepr = CollectErrorRepr(
+                [msg, msg_diff + "\n"], [dict(), dict(red=True, bold=True)]
+            )
 
     else:
         regtest.write_current()
