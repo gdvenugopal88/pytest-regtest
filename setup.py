@@ -12,7 +12,7 @@ AUTHOR_EMAIL = "uwe.schmitt@id.ethz.ch"
 
 DESCRIPTION = "pytest plugin for regression tests"
 
-LICENSE = "http://opensource.org/licenses/GPL-3.0"
+LICENSE = "https://opensource.org/licenses/MIT"
 
 URL = "https://gitlab.com/uweschmitt/pytest-regtest"
 
