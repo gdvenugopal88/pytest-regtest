@@ -244,9 +244,10 @@ def pytest_runtest_makereport(item, call):
     duration = call.stop - call.start
     keywords = dict([(x, 1) for x in item.keywords])
 
-    outcome.result.when = when
-    outcome.result.duration = duration
-    outcome.result.keywords = keywords
+    result = outcome.get_result()
+    result.when = when
+    result.duration = duration
+    result.keywords = keywords
 
     xfail = item.get_marker("xfail") is not None
 
@@ -266,21 +267,21 @@ def pytest_runtest_makereport(item, call):
                 longrepr = item._repr_failure_py(
                     excinfo, style=item.config.option.tbstyle
                 )
-        outcome.result.longrepr = longrepr
-        outcome.result.outcome = _outcome
+        result.longrepr = longrepr
+        result.outcome = _outcome
 
     else:
-        outcome.result.outcome = "passed"
-        outcome.result.longrepr = None
+        result.outcome = "passed"
+        result.longrepr = None
 
         if call.when == "call":
             regtest = getattr(item, "funcargs", {}).get("regtest")
             if regtest is not None:
                 xfail = item.get_marker("xfail") is not None
-                handle_regtest_result(regtest, outcome, xfail)
+                handle_regtest_result(regtest, result, xfail)
 
 
-def handle_regtest_result(regtest, outcome, xfail):
+def handle_regtest_result(regtest, result, xfail):
 
     if Config.tee:
         tw.line()
@@ -302,15 +303,15 @@ def handle_regtest_result(regtest, outcome, xfail):
         if current != tobe:
 
             if xfail:
-                outcome.result.outcome = "skipped"
+                result.outcome = "skipped"
             else:
-                outcome.result.outcome = "failed"
+                result.outcome = "failed"
 
             nodeid = regtest.nodeid + (
                 "" if regtest.identifier is None else "__" + regtest.identifier
             )
             if Config.nodiff:
-                outcome.result.longrepr = CollectErrorRepr(
+                result.longrepr = CollectErrorRepr(
                     ["regression test for {} failed\n".format(nodeid)],
                     [dict(red=True, bold=True)],
                 )
@@ -326,7 +327,7 @@ def handle_regtest_result(regtest, outcome, xfail):
 
             msg = "\nregression test output differences for {}:\n".format(nodeid)
             msg_diff = ">   " + "\n>   ".join(collected)
-            outcome.result.longrepr = CollectErrorRepr(
+            result.longrepr = CollectErrorRepr(
                 [msg, msg_diff + "\n"], [dict(), dict(red=True, bold=True)]
             )
 
