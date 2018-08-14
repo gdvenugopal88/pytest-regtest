@@ -23,6 +23,7 @@ del _version
 
 
 IS_PY3 = sys.version_info.major == 3
+IS_WIN = sys.platform == "win32"
 
 if IS_PY3:
     open = functools.partial(open, encoding="utf-8")
@@ -68,7 +69,8 @@ def _std_replacements(request):
         tmpdir = request.getfixturevalue("tmpdir").strpath
         yield tmpdir, "<tmpdir_from_fixture>"
 
-    regexp = tempfile.gettempdir() + "/tmp[_a-zA-Z0-9]+"
+    regexp = os.path.join(tempfile.gettempdir(), "tmp[_a-zA-Z0-9]+")
+
     yield regexp, "<tmpdir_from_tempfile_module>"
     yield os.path.realpath(tempfile.gettempdir()), "<tmpdir_from_tempfile_module>"
     yield tempfile.tempdir, "<tmpdir_from_tempfile_module>"
@@ -83,6 +85,9 @@ def _std_conversion(recorded, request):
     fixed = []
     for line in recorded.split("\n"):
         for regex, replacement in _std_replacements(request):
+            if IS_WIN:
+                # fix windows backwards slashes in regex
+                regex = regex.replace("\\", "\\\\")
             line, __ = re.subn(regex, replacement, line)
         fixed.append(line)
     recorded = "\n".join(fixed)
@@ -93,7 +98,7 @@ def _std_conversion(recorded, request):
 
 def _call_converter(converter, recorded, request):
     if converter.__code__.co_argcount == 2:
-        # new api for converters
+        #  new api for converters
         return converter(recorded, request)
     # old api for converters
     return converter(recorded)
