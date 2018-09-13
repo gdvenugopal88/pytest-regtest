@@ -60,7 +60,7 @@ def test_fixture(testdir):
 
     # will fully fail
     result = testdir.runpytest()
-    result.assert_outcomes(failed=5, passed=2)
+    result.assert_outcomes(failed=5, passed=2, xfailed=2)
     result.stdout.fnmatch_lines(
         [
             "regression test output differences for test_fixture.py::test_regtest:",
@@ -88,7 +88,7 @@ def test_fixture(testdir):
 
     # reset
     result = testdir.runpytest("--regtest-reset", "-v")
-    result.assert_outcomes(failed=2, passed=5)
+    result.assert_outcomes(failed=2, passed=5, xfailed=2)
     result.stdout.fnmatch_lines(["*2 failed, 5 passed, 2 xfailed*"])
 
     # check recorded output
@@ -125,13 +125,13 @@ def test_fixture(testdir):
 
     # run again, reg test should succeed now
     result = testdir.runpytest()
-    result.assert_outcomes(failed=2, passed=5)
+    result.assert_outcomes(failed=2, passed=5, xfailed=2)
     result.stdout.fnmatch_lines(["*2 failed, 5 passed, 2 xfailed*"])
 
     # just check if cmd line flags work without throwing exceptions:
     result = testdir.runpytest("--regtest-regard-line-endings")
-    result.assert_outcomes(failed=2, passed=5)
+    result.assert_outcomes(failed=2, passed=5, xfailed=2)
 
     # just check if cmd line flags work without throwing exceptions:
     result = testdir.runpytest("--regtest-tee")
-    result.assert_outcomes(failed=2, passed=5)
+    result.assert_outcomes(failed=2, passed=5, xfailed=2)
