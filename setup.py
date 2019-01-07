@@ -49,5 +49,5 @@ if __name__ == "__main__":
         long_description=LONG_DESCRIPTION,
         # the following makes a plugin available to pytest
         entry_points={"pytest11": ["regtest = pytest_regtest"]},
-        install_requires=["pytest>=3.3.2"],
+        install_requires=["pytest>=4.1.0"],
     )

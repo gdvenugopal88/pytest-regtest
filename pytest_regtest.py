@@ -249,7 +249,7 @@ def pytest_runtest_makereport(item, call):
     result.duration = duration
     result.keywords = keywords
 
-    xfail = item.get_marker("xfail") is not None
+    xfail = item.get_closest_marker("xfail") is not None
 
     if excinfo:
         if not isinstance(excinfo, ExceptionInfo):
@@ -277,7 +277,7 @@ def pytest_runtest_makereport(item, call):
         if call.when == "call":
             regtest = getattr(item, "funcargs", {}).get("regtest")
             if regtest is not None:
-                xfail = item.get_marker("xfail") is not None
+                xfail = item.get_closest_marker("xfail") is not None
                 handle_regtest_result(regtest, result, xfail)
 
 
