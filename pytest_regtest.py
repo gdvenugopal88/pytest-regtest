@@ -226,6 +226,16 @@ class RegTestFixture(object):
         with open(self.result_file, "w") as fh:
             fh.write(self.current)
 
+    def __enter__(self):
+        self.stdout = sys.stdout
+        sys.stdout = self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        sys.stdout = self.stdout
+        return False  # don't suppress exception
+
+
+
 
 @pytest.fixture
 def regtest(request):

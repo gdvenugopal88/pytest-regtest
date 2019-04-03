@@ -22,11 +22,12 @@ def test_fixture(testdir):
 
         def test_regtest(regtest, tmpdir):
 
-            print("this is expected outcome", file=regtest)
-            print(tmpdir.join("test").strpath, file=regtest)
-            print(tempfile.gettempdir(), file=regtest)
-            print(tempfile.mkdtemp(), file=regtest)
-            print("obj id is", hex(id(here)), file=regtest)
+            with regtest:
+                print("this is expected outcome")
+                print(tmpdir.join("test").strpath)
+                print(tempfile.gettempdir())
+                print(tempfile.mkdtemp())
+                print("obj id is", hex(id(here)))
 
         def test_always_fail():
             assert 1 * 1 == 2

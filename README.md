@@ -33,6 +33,10 @@ used as a file handle for recording data:
         # alternative method to record output:
         regtest.write("done")
 
+        # or using a context manager:
+        with regtest:
+            print("this will be recorded")
+
 If you run this test script with *pytest* the first time there is no
 recorded output for this test function so far and thus the test will
 fail with a message including a diff:
