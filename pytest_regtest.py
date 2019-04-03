@@ -235,8 +235,6 @@ class RegTestFixture(object):
         return False  # don't suppress exception
 
 
-
-
 @pytest.fixture
 def regtest(request):
     item = request.node
