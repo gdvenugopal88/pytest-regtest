@@ -77,7 +77,7 @@ def _std_replacements(request):
     yield r"var/folders/.*/pytest-of.*/", "<pytest_tempdir>/"
 
     # replace hex object ids in output by 0x?????????
-    yield r" 0x[0-9a-f]+", " 0x?????????"
+    yield r" 0x[0-9a-fA-F]+", " 0x?????????"
 
 
 def _std_conversion(recorded, request):
