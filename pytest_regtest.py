@@ -66,13 +66,21 @@ def register_converter_post(function):
 def _std_replacements(request):
 
     if "tmpdir" in request.fixturenames:
+        tmpdir = request.getfixturevalue("tmpdir").strpath + os.path.sep
+        yield tmpdir, "<tmpdir_from_fixture>/"
         tmpdir = request.getfixturevalue("tmpdir").strpath
         yield tmpdir, "<tmpdir_from_fixture>"
 
     regexp = os.path.join(tempfile.gettempdir(), "tmp[_a-zA-Z0-9]+")
 
     yield regexp, "<tmpdir_from_tempfile_module>"
-    yield os.path.realpath(tempfile.gettempdir()), "<tmpdir_from_tempfile_module>"
+    yield os.path.realpath(
+        tempfile.gettempdir()
+    ) + os.path.sep, "<tmpdir_from_tempfile_module>/"
+    yield os.path.realpath(
+        tempfile.gettempdir()
+    ), "<tmpdir_from_tempfile_module>"
+    yield tempfile.tempdir + os.path.sep, "<tmpdir_from_tempfile_module>/"
     yield tempfile.tempdir, "<tmpdir_from_tempfile_module>"
     yield r"var/folders/.*/pytest-of.*/", "<pytest_tempdir>/"
 
