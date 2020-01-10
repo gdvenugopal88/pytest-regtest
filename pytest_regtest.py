@@ -13,7 +13,7 @@ import py
 import pytest
 from _pytest._code.code import ExceptionInfo, TerminalRepr
 from _pytest.outcomes import skip
-import hashlib
+from hashlib import sha512
 
 pytest_plugins = ["pytester"]
 
@@ -205,7 +205,7 @@ class RegTestFixture(object):
 
         # If file name is too long, hash parameters.
         if len(test_function) > 100:
-            test_function = hashlib.sha512(test_function.encode('utf-8')).hexdigest()[:10]
+            test_function = sha512(test_function.encode('utf-8')).hexdigest()[:10]
 
         stem, __ = os.path.splitext(file_name)
         if self.identifier is not None:
