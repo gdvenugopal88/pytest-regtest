@@ -102,13 +102,13 @@ folder under version control.
 Other features
 --------------
 
-Another way to record output is the *regtest\_redirect* fixture:
+Another way to record output is to capture all output to `sys.stdout`:
 
-    def test_squares_up_to_ten(regtest_redirect):
+    def test_squares_up_to_ten(regtest):
 
         result = [i*i for i in range(10)]
 
-        with regtest_redirect():
+        with regtest():
             print result
 
 You can reset recorded output of files and functions individually as:
