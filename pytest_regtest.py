@@ -13,6 +13,7 @@ import py
 import pytest
 from _pytest._code.code import ExceptionInfo, TerminalRepr
 from _pytest.outcomes import skip
+import hashlib
 
 pytest_plugins = ["pytester"]
 
@@ -201,6 +202,11 @@ class RegTestFixture(object):
         file_name, __, test_function = self.nodeid.partition("::")
         file_name = os.path.basename(file_name)
         test_function = test_function.replace("/", "--")
+
+        # If file name is too long, hash parameters.
+        if len(test_function) > 100:
+            test_function = hashlib.sha512(test_function.encode('utf-8')).hexdigest()[:10]
+
         stem, __ = os.path.splitext(file_name)
         if self.identifier is not None:
             return stem + "." + test_function + "__" + self.identifier + ".out"
