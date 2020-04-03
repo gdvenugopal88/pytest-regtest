@@ -2,6 +2,7 @@
 # encoding: utf-8
 from __future__ import print_function, division, absolute_import
 
+pytest_plugins = ["pytester"]
 
 from pytest_regtest import register_converter_pre, register_converter_post
 

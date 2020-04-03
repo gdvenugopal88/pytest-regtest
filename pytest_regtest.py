@@ -15,8 +15,6 @@ from _pytest._code.code import ExceptionInfo, TerminalRepr
 from _pytest.outcomes import skip
 from hashlib import sha512
 
-pytest_plugins = ["pytester"]
-
 
 _version = pkg_resources.require("pytest-regtest")[0].version.split(".")
 __version__ = tuple(map(int, _version))
@@ -25,6 +23,7 @@ del _version
 
 IS_PY3 = sys.version_info.major == 3
 IS_WIN = sys.platform == "win32"
+
 
 if IS_PY3:
     open = functools.partial(open, encoding="utf-8")
@@ -37,109 +36,6 @@ if IS_PY3:
 else:
     from cStringIO import StringIO
     from string import ljust
-
-
-""" the function below is from
-http://stackoverflow.com/questions/898669/how-can-i-detect-if-a-file-is-binary-non-text-in-python
-"""
-
-textchars = bytearray({7, 8, 9, 10, 12, 13, 27} | set(range(0x20, 0x100)) - {0x7f})
-
-
-def is_binary_string(bytes):
-    return bool(bytes.translate(None, textchars))
-
-
-_converters_pre = []
-_converters_post = []
-
-
-def register_converter_pre(function):
-    if function not in _converters_pre:
-        _converters_pre.append(function)
-
-
-def register_converter_post(function):
-    if function not in _converters_post:
-        _converters_post.append(function)
-
-
-def _std_replacements(request):
-
-    if "tmpdir" in request.fixturenames:
-        tmpdir = request.getfixturevalue("tmpdir").strpath + os.path.sep
-        yield tmpdir, "<tmpdir_from_fixture>/"
-        tmpdir = request.getfixturevalue("tmpdir").strpath
-        yield tmpdir, "<tmpdir_from_fixture>"
-
-    regexp = os.path.join(tempfile.gettempdir(), "tmp[_a-zA-Z0-9]+")
-
-    yield regexp, "<tmpdir_from_tempfile_module>"
-    yield os.path.realpath(
-        tempfile.gettempdir()
-    ) + os.path.sep, "<tmpdir_from_tempfile_module>/"
-    yield os.path.realpath(
-        tempfile.gettempdir()
-    ), "<tmpdir_from_tempfile_module>"
-    yield tempfile.tempdir + os.path.sep, "<tmpdir_from_tempfile_module>/"
-    yield tempfile.tempdir, "<tmpdir_from_tempfile_module>"
-    yield r"var/folders/.*/pytest-of.*/", "<pytest_tempdir>/"
-
-    # replace hex object ids in output by 0x?????????
-    yield r" 0x[0-9a-fA-F]+", " 0x?????????"
-
-
-def _std_conversion(recorded, request):
-
-    fixed = []
-    for line in recorded.split("\n"):
-        for regex, replacement in _std_replacements(request):
-            if IS_WIN:
-                # fix windows backwards slashes in regex
-                regex = regex.replace("\\", "\\\\")
-            line, __ = re.subn(regex, replacement, line)
-        fixed.append(line)
-    recorded = "\n".join(fixed)
-
-    # recorded = cleanup_hex(recorded)
-    return recorded
-
-
-def _call_converter(converter, recorded, request):
-    if converter.__code__.co_argcount == 2:
-        #  new api for converters
-        return converter(recorded, request)
-    # old api for converters
-    return converter(recorded)
-
-
-def cleanup(recorded, request):
-
-    for converter in _converters_pre:
-        recorded = _call_converter(converter, recorded, request)
-
-    recorded = _std_conversion(recorded, request)
-
-    for converter in _converters_post:
-        recorded = _call_converter(converter, recorded, request)
-
-    # in python 3 a string should not contain binary symbols...:
-    if not IS_PY3 and is_binary_string(recorded):
-        request.raiseerror(
-            "recorded output for regression test contains unprintable characters."
-        )
-
-    return recorded
-
-
-class CollectErrorRepr(TerminalRepr):
-    def __init__(self, messages, colors):
-        self.messages = messages
-        self.colors = colors
-
-    def toterminal(self, out):
-        for message, color in zip(self.messages, self.colors):
-            out.line(message, **color)
 
 
 def pytest_addoption(parser):
@@ -185,7 +81,24 @@ def pytest_configure(config):
     Config.nodiff = config.getvalue("--regtest-nodiff")
 
 
-tw = py.io.TerminalWriter()
+@pytest.fixture
+def regtest(request):
+    item = request.node
+    yield RegTestFixture(request, item.nodeid)
+
+
+_converters_pre = []
+_converters_post = []
+
+
+def register_converter_pre(function):
+    if function not in _converters_pre:
+        _converters_pre.append(function)
+
+
+def register_converter_post(function):
+    if function not in _converters_post:
+        _converters_post.append(function)
 
 
 class RegTestFixture(object):
@@ -198,6 +111,10 @@ class RegTestFixture(object):
         self.identifier = None
 
     @property
+    def result_file(self):
+        return os.path.join(self.test_folder, "_regtest_outputs", self.output_file_name)
+
+    @property
     def output_file_name(self):
         file_name, __, test_function = self.nodeid.partition("::")
         file_name = os.path.basename(file_name)
@@ -205,17 +122,13 @@ class RegTestFixture(object):
 
         # If file name is too long, hash parameters.
         if len(test_function) > 100:
-            test_function = sha512(test_function.encode('utf-8')).hexdigest()[:10]
+            test_function = sha512(test_function.encode("utf-8")).hexdigest()[:10]
 
         stem, __ = os.path.splitext(file_name)
         if self.identifier is not None:
             return stem + "." + test_function + "__" + self.identifier + ".out"
         else:
             return stem + "." + test_function + ".out"
-
-    @property
-    def result_file(self):
-        return os.path.join(self.test_folder, "_regtest_outputs", self.output_file_name)
 
     def write(self, what):
         self.buffer.write(what)
@@ -249,67 +162,140 @@ class RegTestFixture(object):
         return False  # don't suppress exception
 
 
-@pytest.fixture
-def regtest(request):
-    item = request.node
+def cleanup(recorded, request):
 
-    yield RegTestFixture(request, item.nodeid)
+    for converter in _converters_pre:
+        recorded = _call_converter(converter, recorded, request)
+
+    recorded = _std_conversion(recorded, request)
+
+    for converter in _converters_post:
+        recorded = _call_converter(converter, recorded, request)
+
+    # in python 3 a string should not contain binary symbols...:
+    if not IS_PY3 and is_binary_string(recorded):
+        request.raiseerror(
+            "recorded output for regression test contains unprintable characters."
+        )
+
+    return recorded
+
+
+def _call_converter(converter, recorded, request):
+    if converter.__code__.co_argcount == 2:
+        #  new api for converters
+        return converter(recorded, request)
+    # old api for converters
+    return converter(recorded)
+
+
+def _std_conversion(recorded, request):
+
+    fixed = []
+    for line in recorded.split("\n"):
+        for regex, replacement in _std_replacements(request):
+            if IS_WIN:
+                # fix windows backwards slashes in regex
+                regex = regex.replace("\\", "\\\\")
+            line, __ = re.subn(regex, replacement, line)
+        fixed.append(line)
+    recorded = "\n".join(fixed)
+
+    return recorded
+
+
+def _std_replacements(request):
+
+    if "tmpdir" in request.fixturenames:
+        tmpdir = request.getfixturevalue("tmpdir").strpath + os.path.sep
+        yield tmpdir, "<tmpdir_from_fixture>/"
+        tmpdir = request.getfixturevalue("tmpdir").strpath
+        yield tmpdir, "<tmpdir_from_fixture>"
+
+    regexp = os.path.join(tempfile.gettempdir(), "tmp[_a-zA-Z0-9]+")
+
+    yield regexp, "<tmpdir_from_tempfile_module>"
+    yield os.path.realpath(
+        tempfile.gettempdir()
+    ) + os.path.sep, "<tmpdir_from_tempfile_module>/"
+    yield os.path.realpath(tempfile.gettempdir()), "<tmpdir_from_tempfile_module>"
+    yield tempfile.tempdir + os.path.sep, "<tmpdir_from_tempfile_module>/"
+    yield tempfile.tempdir, "<tmpdir_from_tempfile_module>"
+    yield r"var/folders/.*/pytest-of.*/", "<pytest_tempdir>/"
+
+    # replace hex object ids in output by 0x?????????
+    yield r" 0x[0-9a-fA-F]+", " 0x?????????"
+
+
+# the function below is from http://stackoverflow.com/questions/898669/
+textchars = bytearray({7, 8, 9, 10, 12, 13, 27} | set(range(0x20, 0x100)) - {0x7f})
+
+
+def is_binary_string(bytes):
+    return bool(bytes.translate(None, textchars))
+
+
+class CollectErrorRepr(TerminalRepr):
+    def __init__(self, messages, colors):
+        self.messages = messages
+        self.colors = colors
+
+    def toterminal(self, out):
+        for message, color in zip(self.messages, self.colors):
+            out.line(message, **color)
+
+
+failed = {}
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_call(item):
+    result = yield
+    regtest = getattr(item, "funcargs", {}).get("regtest")
+
+    if regtest is None:
+        return result
+
+    if Config.reset:
+        regtest.write_current()
+
+    current = regtest.current.rstrip("\n").split("\n")
+    tobe = regtest.tobe.rstrip("\n").split("\n")
+
+    if Config.ignore_line_endings:
+        current = [l.rstrip() for l in current]
+        tobe = [l.rstrip() for l in tobe]
+
+    if tobe != current:
+        failed[item.nodeid] = (tobe, current)
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_report_teststatus(report, config):
+
+    if report.nodeid in failed and report.when == "call":
+        if hasattr(report, "wasxfail"):
+            report.outcome = "skipped"
+        else:
+            report.outcome = "failed"
+
+    yield
 
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
 
-    if "regtest" not in item.fixturenames:
-        yield
-        return
-
     outcome = yield
 
-    excinfo = call.excinfo
-    when = call.when
-    duration = call.stop - call.start
-    keywords = dict([(x, 1) for x in item.keywords])
-
+    regtest = getattr(item, "funcargs", {}).get("regtest")
     result = outcome.get_result()
-    result.when = when
-    result.duration = duration
-    result.keywords = keywords
 
-    xfail = item.get_closest_marker("xfail") is not None
+    if regtest is None or call.when != "call":
+        return outcome
 
-    if excinfo:
-        if not isinstance(excinfo, ExceptionInfo):
-            _outcome = "failed"
-            longrepr = excinfo
-        elif excinfo.errisinstance(skip.Exception):
-            _outcome = "skipped"
-            r = excinfo._getreprcrash()
-            longrepr = (str(r.path), r.lineno, r.message)
-        else:
-            _outcome = "failed" if not xfail else "skipped"
-            if call.when == "call":
-                longrepr = item.repr_failure(excinfo)
-            else:  # exception in setup or teardown
-                longrepr = item._repr_failure_py(
-                    excinfo, style=item.config.option.tbstyle
-                )
-        result.longrepr = longrepr
-        result.outcome = _outcome
+    tw = py.io.TerminalWriter()
 
-    else:
-        result.outcome = "passed"
-        result.longrepr = None
-
-        if call.when == "call":
-            regtest = getattr(item, "funcargs", {}).get("regtest")
-            if regtest is not None:
-                xfail = item.get_closest_marker("xfail") is not None
-                handle_regtest_result(regtest, result, xfail)
-
-
-def handle_regtest_result(regtest, result, xfail):
-
-    if Config.tee:
+    if regtest is not None and Config.tee:
         tw.line()
         line = "recorded output to regtest fixture:"
         line = ljust(line, tw.fullwidth, "-")
@@ -317,45 +303,30 @@ def handle_regtest_result(regtest, result, xfail):
         tw.write(regtest.current, cyan=True)
         tw.line("-" * tw.fullwidth, green=True)
 
-    if not Config.reset:
+    nodeid = item.nodeid
+    if nodeid not in failed:
+        return outcome
 
-        current = regtest.current.split("\n")
-        tobe = regtest.tobe.split("\n")
+    current, tobe = failed[nodeid]
 
-        if Config.ignore_line_endings:
-            current = [l.rstrip() for l in current]
-            tobe = [l.rstrip() for l in tobe]
+    if Config.nodiff:
+        result.longrepr = CollectErrorRepr(
+            ["regression test for {} failed\n".format(nodeid)],
+            [dict(red=True, bold=True)],
+        )
+        return
 
-        if current != tobe:
+    if not Config.ignore_line_endings:
+        # add quotes around lines in diff:
+        current = list(map(repr, current))
+        tobe = list(map(repr, tobe))
 
-            if xfail:
-                result.outcome = "skipped"
-            else:
-                result.outcome = "failed"
+    collected = list(
+        difflib.unified_diff(current, tobe, "current", "tobe", lineterm="")
+    )
 
-            nodeid = regtest.nodeid + (
-                "" if regtest.identifier is None else "__" + regtest.identifier
-            )
-            if Config.nodiff:
-                result.longrepr = CollectErrorRepr(
-                    ["regression test for {} failed\n".format(nodeid)],
-                    [dict(red=True, bold=True)],
-                )
-                return
-
-            if not Config.ignore_line_endings:
-                # add quotes around lines in diff:
-                current = map(repr, current)
-                tobe = map(repr, tobe)
-            collected = list(
-                difflib.unified_diff(current, tobe, "current", "tobe", lineterm="")
-            )
-
-            msg = "\nregression test output differences for {}:\n".format(nodeid)
-            msg_diff = ">   " + "\n>   ".join(collected)
-            result.longrepr = CollectErrorRepr(
-                [msg, msg_diff + "\n"], [dict(), dict(red=True, bold=True)]
-            )
-
-    else:
-        regtest.write_current()
+    msg = "\nregression test output differences for {}:\n".format(nodeid)
+    msg_diff = ">   " + "\n>   ".join(collected)
+    result.longrepr = CollectErrorRepr(
+        [msg, msg_diff + "\n"], [dict(), dict(red=True, bold=True)]
+    )
